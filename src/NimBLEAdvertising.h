@@ -94,6 +94,7 @@ class NimBLEAdvertising {
     bool stop();
     void setAppearance(uint16_t appearance);
     void setName(const std::string& name);
+    void setManufacturerData(const uint8_t* data, size_t length);
     void setManufacturerData(const std::string& data);
     void setManufacturerData(const std::vector<uint8_t>& data);
     void setURI(const std::string& uri);

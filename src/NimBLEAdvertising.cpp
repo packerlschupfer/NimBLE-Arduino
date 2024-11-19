@@ -151,9 +151,10 @@ void NimBLEAdvertising::setName(const std::string& name) {
 /**
  * @brief Set the advertised manufacturer data.
  * @param [in] data The data to advertise.
+ * @param [in] length The length of the data.
  */
-void NimBLEAdvertising::setManufacturerData(const std::string& data) {
-    std::vector<uint8_t>(data.begin(), data.end()).swap(m_mfgData);
+void NimBLEAdvertising::setManufacturerData(const uint8_t* data, size_t length) {
+    std::vector<uint8_t>(data, data + length).swap(m_mfgData);
     m_advData.mfg_data     = &m_mfgData[0];
     m_advData.mfg_data_len = m_mfgData.size();
     m_advDataSet           = false;
@@ -163,11 +164,16 @@ void NimBLEAdvertising::setManufacturerData(const std::string& data) {
  * @brief Set the advertised manufacturer data.
  * @param [in] data The data to advertise.
  */
+void NimBLEAdvertising::setManufacturerData(const std::string& data) {
+    setManufacturerData(reinterpret_cast<const uint8_t*>(data.data()), data.length());
+} // setManufacturerData
+
+/**
+ * @brief Set the advertised manufacturer data.
+ * @param [in] data The data to advertise.
+ */
 void NimBLEAdvertising::setManufacturerData(const std::vector<uint8_t>& data) {
-    std::vector<uint8_t>(data.begin(), data.end()).swap(m_mfgData);
-    m_advData.mfg_data     = &m_mfgData[0];
-    m_advData.mfg_data_len = m_mfgData.size();
-    m_advDataSet           = false;
+    setManufacturerData(&data[0], data.size());
 } // setManufacturerData
 
 /**
