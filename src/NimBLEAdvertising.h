@@ -98,9 +98,11 @@ class NimBLEAdvertising {
     void setManufacturerData(const std::string& data);
     void setManufacturerData(const std::vector<uint8_t>& data);
     void setURI(const std::string& uri);
+    void setServiceData(const NimBLEUUID& uuid, const uint8_t* data, size_t length);
     void setServiceData(const NimBLEUUID& uuid, const std::string& data);
     void setConnectableMode(uint8_t mode);
     void setDiscoverableMode(uint8_t mode);
+    void setServiceData(const NimBLEUUID& uuid, const std::vector<uint8_t>& data);
     void setAdvertisingInterval(uint16_t interval);
     void setMaxInterval(uint16_t maxInterval);
     void setMinInterval(uint16_t minInterval);

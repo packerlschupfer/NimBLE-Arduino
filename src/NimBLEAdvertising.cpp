@@ -191,31 +191,32 @@ void NimBLEAdvertising::setURI(const std::string& uri) {
  * @brief Set the service data advertised for the UUID.
  * @param [in] uuid The UUID the service data belongs to.
  * @param [in] data The data to advertise.
+ * @param [in] length The length of the data.
  * @note If data length is 0 the service data will not be advertised.
  */
-void NimBLEAdvertising::setServiceData(const NimBLEUUID& uuid, const std::string& data) {
+void NimBLEAdvertising::setServiceData(const NimBLEUUID& uuid, const uint8_t* data, size_t length) {
     switch (uuid.bitSize()) {
         case 16: {
             std::vector<uint8_t>(uuid.getValue(), uuid.getValue() + 2).swap(m_svcData16);
-            m_svcData16.insert(m_svcData16.end(), data.begin(), data.end());
+            m_svcData16.insert(m_svcData16.end(), data, data + length);
             m_advData.svc_data_uuid16     = &m_svcData16[0];
-            m_advData.svc_data_uuid16_len = (data.length() > 0) ? m_svcData16.size() : 0;
+            m_advData.svc_data_uuid16_len = (length > 0) ? m_svcData16.size() : 0;
             break;
         }
 
         case 32: {
             std::vector<uint8_t>(uuid.getValue(), uuid.getValue() + 4).swap(m_svcData32);
-            m_svcData32.insert(m_svcData32.end(), data.begin(), data.end());
+            m_svcData32.insert(m_svcData32.end(), data, data + length);
             m_advData.svc_data_uuid32     = &m_svcData32[0];
-            m_advData.svc_data_uuid32_len = (data.length() > 0) ? m_svcData32.size() : 0;
+            m_advData.svc_data_uuid32_len = (length > 0) ? m_svcData32.size() : 0;
             break;
         }
 
         case 128: {
             std::vector<uint8_t>(uuid.getValue(), uuid.getValue() + 16).swap(m_svcData128);
-            m_svcData128.insert(m_svcData128.end(), data.begin(), data.end());
+            m_svcData128.insert(m_svcData128.end(), data, data + length);
             m_advData.svc_data_uuid128     = &m_svcData128[0];
-            m_advData.svc_data_uuid128_len = (data.length() > 0) ? m_svcData128.size() : 0;
+            m_advData.svc_data_uuid128_len = (length > 0) ? m_svcData128.size() : 0;
             break;
         }
 
@@ -224,6 +225,26 @@ void NimBLEAdvertising::setServiceData(const NimBLEUUID& uuid, const std::string
     }
 
     m_advDataSet = false;
+} // setServiceData
+
+/**
+ * @brief Set the service data advertised for the UUID.
+ * @param [in] uuid The UUID the service data belongs to.
+ * @param [in] data The data to advertise.
+ * @note If data length is 0 the service data will not be advertised.
+ */
+void NimBLEAdvertising::setServiceData(const NimBLEUUID& uuid, const std::vector<uint8_t>& data) {
+    setServiceData(uuid, data.data(), data.size());
+} // setServiceData
+
+/**
+ * @brief Set the service data advertised for the UUID.
+ * @param [in] uuid The UUID the service data belongs to.
+ * @param [in] data The data to advertise.
+ * @note If data length is 0 the service data will not be advertised.
+ */
+void NimBLEAdvertising::setServiceData(const NimBLEUUID& uuid, const std::string& data) {
+    setServiceData(uuid, reinterpret_cast<const uint8_t*>(data.data()), data.length());
 } // setServiceData
 
 /**
