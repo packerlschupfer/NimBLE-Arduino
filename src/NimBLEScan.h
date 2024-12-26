@@ -1,18 +1,22 @@
 /*
- * NimBLEScan.h
+ * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
- *  Created: on Jan 24 2020
- *      Author H2zero
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Originally:
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * BLEScan.h
- *
- *  Created on: Jul 1, 2017
- *      Author: kolban
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-#ifndef COMPONENTS_NIMBLE_SCAN_H_
-#define COMPONENTS_NIMBLE_SCAN_H_
+
+#ifndef NIMBLE_CPP_SCAN_H_
+#define NIMBLE_CPP_SCAN_H_
 
 #include "nimconfig.h"
 #if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER)
@@ -66,9 +70,9 @@ class NimBLEScan {
     bool              isScanning();
     void              setScanCallbacks(NimBLEScanCallbacks* pScanCallbacks, bool wantDuplicates = false);
     void              setActiveScan(bool active);
-    void              setInterval(uint16_t intervalMSecs);
-    void              setWindow(uint16_t windowMSecs);
-    void              setDuplicateFilter(bool enabled);
+    void              setInterval(uint16_t intervalMs);
+    void              setWindow(uint16_t windowMs);
+    void              setDuplicateFilter(uint8_t enabled);
     void              setLimitedOnly(bool enabled);
     void              setFilterPolicy(uint8_t filter);
     bool              stop();
@@ -78,6 +82,12 @@ class NimBLEScan {
     void              setMaxResults(uint8_t maxResults);
     void              erase(const NimBLEAddress& address);
     void              erase(const NimBLEAdvertisedDevice* device);
+
+# if CONFIG_BT_NIMBLE_EXT_ADV
+    enum Phy { SCAN_1M = 0x01, SCAN_CODED = 0x02, SCAN_ALL = 0x03 };
+    void setPhy(Phy phyMask);
+    void setPeriod(uint32_t periodMs);
+# endif
 
   private:
     friend class NimBLEDevice;
@@ -90,9 +100,13 @@ class NimBLEScan {
     NimBLEScanCallbacks* m_pScanCallbacks;
     ble_gap_disc_params  m_scanParams;
     NimBLEScanResults    m_scanResults;
-    uint32_t             m_duration;
     NimBLETaskData*      m_pTaskData;
     uint8_t              m_maxResults;
+
+# if CONFIG_BT_NIMBLE_EXT_ADV
+    uint8_t  m_phy{SCAN_ALL};
+    uint16_t m_period{0};
+# endif
 };
 
 /**
@@ -122,5 +136,5 @@ class NimBLEScanCallbacks {
     virtual void onScanEnd(const NimBLEScanResults& scanResults, int reason);
 };
 
-#endif /* CONFIG_BT_ENABLED CONFIG_BT_NIMBLE_ROLE_OBSERVER */
-#endif /* COMPONENTS_NIMBLE_SCAN_H_ */
+#endif // CONFIG_BT_ENABLED CONFIG_BT_NIMBLE_ROLE_OBSERVER
+#endif // NIMBLE_CPP_SCAN_H_

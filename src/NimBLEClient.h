@@ -1,14 +1,18 @@
 /*
- * NimBLEClient.h
+ * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
- *  Created: on Jan 26 2020
- *      Author H2zero
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Originally:
- * BLEClient.h
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Created on: Mar 22, 2017
- *      Author: kolban
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef NIMBLE_CPP_CLIENT_H_
@@ -44,10 +48,10 @@ struct NimBLETaskData;
  */
 class NimBLEClient {
   public:
-    bool connect(NimBLEAdvertisedDevice* device,
-                 bool                    deleteAttributes = true,
-                 bool                    asyncConnect     = false,
-                 bool                    exchangeMTU      = true);
+    bool connect(const NimBLEAdvertisedDevice* device,
+                 bool                          deleteAttributes = true,
+                 bool                          asyncConnect     = false,
+                 bool                          exchangeMTU      = true);
     bool connect(const NimBLEAddress& address, bool deleteAttributes = true, bool asyncConnect = false, bool exchangeMTU = true);
     bool           connect(bool deleteAttributes = true, bool asyncConnect = false, bool exchangeMTU = true);
     bool           disconnect(uint8_t reason = BLE_ERR_REM_USER_CONN_TERM);
@@ -60,12 +64,9 @@ class NimBLEClient {
     void           setClientCallbacks(NimBLEClientCallbacks* pClientCallbacks, bool deleteCallbacks = true);
     std::string    toString() const;
     uint16_t       getConnHandle() const;
-    void           clearConnection();
-    bool           setConnection(const NimBLEConnInfo& connInfo);
-    bool           setConnection(uint16_t connHandle);
     uint16_t       getMTU() const;
     bool           exchangeMTU();
-    bool           secureConnection() const;
+    bool           secureConnection(bool async = false) const;
     void           setConnectTimeout(uint32_t timeout);
     bool           setDataLen(uint16_t txOctets);
     bool           discoverAttributes();
@@ -93,7 +94,9 @@ class NimBLEClient {
                             bool                  response = false);
 
 # if CONFIG_BT_NIMBLE_EXT_ADV
-    void setConnectPhy(uint8_t mask);
+    void setConnectPhy(uint8_t phyMask);
+    bool updatePhy(uint8_t txPhysMask, uint8_t rxPhysMask, uint16_t phyOptions = 0);
+    bool getPhy(uint8_t* txPhy, uint8_t* rxPhy);
 # endif
 
     struct Config {
@@ -129,6 +132,7 @@ class NimBLEClient {
     NimBLEClientCallbacks*            m_pClientCallbacks;
     uint16_t                          m_connHandle;
     uint8_t                           m_terminateFailCount;
+    mutable uint8_t                   m_asyncSecureAttempt;
     Config                            m_config;
 
 # if CONFIG_BT_NIMBLE_EXT_ADV
@@ -137,6 +141,7 @@ class NimBLEClient {
     ble_gap_conn_params m_connParams;
 
     friend class NimBLEDevice;
+    friend class NimBLEServer;
 }; // class NimBLEClient
 
 /**
@@ -148,9 +153,16 @@ class NimBLEClientCallbacks {
 
     /**
      * @brief Called after client connects.
-     * @param [in] pClient A pointer to the calling client object.
+     * @param [in] pClient A pointer to the connecting client object.
      */
     virtual void onConnect(NimBLEClient* pClient);
+
+    /**
+     * @brief Called when a connection attempt fails.
+     * @param [in] pClient A pointer to the connecting client object.
+     * @param [in] reason Contains the reason code for the connection failure.
+     */
+    virtual void onConnectFail(NimBLEClient* pClient, int reason);
 
     /**
      * @brief Called when disconnected from the server.
@@ -200,6 +212,21 @@ class NimBLEClientCallbacks {
      * about the peer connection parameters.
      */
     virtual void onMTUChange(NimBLEClient* pClient, uint16_t MTU);
+
+# if CONFIG_BT_NIMBLE_EXT_ADV
+    /**
+     * @brief Called when the PHY update procedure is complete.
+     * @param [in] pClient A pointer to the client whose PHY was updated.
+     * about the peer connection parameters.
+     * @param [in] txPhy The transmit PHY.
+     * @param [in] rxPhy The receive PHY.
+     * Possible values:
+     * * BLE_GAP_LE_PHY_1M
+     * * BLE_GAP_LE_PHY_2M
+     * * BLE_GAP_LE_PHY_CODED
+     */
+    virtual void onPhyUpdate(NimBLEClient* pClient, uint8_t txPhy, uint8_t rxPhy);
+# endif
 };
 
 #endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_CENTRAL */

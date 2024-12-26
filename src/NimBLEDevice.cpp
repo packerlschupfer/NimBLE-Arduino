@@ -1,15 +1,18 @@
 /*
- * NimBLEDevice.cpp
+ * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
- *  Created: on Jan 24 2020
- *      Author H2zero
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Originally:
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * BLEDevice.cpp
- *
- *  Created on: Mar 16, 2017
- *      Author: kolban
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include "nimconfig.h"
@@ -97,7 +100,6 @@ bool                       NimBLEDevice::m_initialized{false};
 uint32_t                   NimBLEDevice::m_passkey{123456};
 bool                       NimBLEDevice::m_synced{false};
 ble_gap_event_listener     NimBLEDevice::m_listener{};
-std::vector<NimBLEAddress> NimBLEDevice::m_ignoreList{};
 std::vector<NimBLEAddress> NimBLEDevice::m_whiteList{};
 uint8_t                    NimBLEDevice::m_ownAddrType{BLE_OWN_ADDR_PUBLIC};
 
@@ -422,47 +424,58 @@ std::vector<NimBLEClient*> NimBLEDevice::getConnectedClients() {
 /*                               TRANSMIT POWER                               */
 /* -------------------------------------------------------------------------- */
 
+# ifdef ESP_PLATFORM
+#  ifndef CONFIG_IDF_TARGET_ESP32P4
+/**
+ * @brief Get the transmission power.
+ * @return The power level currently used in esp_power_level_t or a negative value on error.
+ */
+esp_power_level_t NimBLEDevice::getPowerLevel(esp_ble_power_type_t powerType) {
+    esp_power_level_t pwr = esp_ble_tx_power_get(powerType);
+
+#   if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32S3)
+    // workaround for bug when "enhanced tx power" was added
+    if (pwr == 0xFF) {
+        pwr = esp_ble_tx_power_get(ESP_BLE_PWR_TYPE_CONN_HDL3);
+    }
+#   endif
+
+    return pwr;
+} // getPowerLevel
+
+/**
+ * @brief Set the transmission power.
+ * @param [in] powerLevel The power level to set in esp_power_level_t.
+ * @return True if the power level was set successfully.
+ */
+bool NimBLEDevice::setPowerLevel(esp_power_level_t powerLevel, esp_ble_power_type_t powerType) {
+    esp_err_t errRc = esp_ble_tx_power_set(powerType, powerLevel);
+    if (errRc != ESP_OK) {
+        NIMBLE_LOGE(LOG_TAG, "esp_ble_tx_power_set: rc=%d", errRc);
+    }
+
+    return errRc == ESP_OK;
+} // setPowerLevel
+#  endif // !CONFIG_IDF_TARGET_ESP32P4
+# endif  // ESP_PLATFORM
+
 /**
  * @brief Set the transmission power.
  * @param [in] dbm The power level to set in dBm.
  * @return True if the power level was set successfully.
  */
 bool NimBLEDevice::setPower(int8_t dbm) {
-    NIMBLE_LOGD(LOG_TAG, ">> setPower: %d", dbm);
 # ifdef ESP_PLATFORM
-#  ifndef CONFIG_IDF_TARGET_ESP32P4
-    if (dbm >= 9) {
-        dbm = ESP_PWR_LVL_P9;
-    } else if (dbm >= 6) {
-        dbm = ESP_PWR_LVL_P6;
-    } else if (dbm >= 3) {
-        dbm = ESP_PWR_LVL_P3;
-    } else if (dbm >= 0) {
-        dbm = ESP_PWR_LVL_N0;
-    } else if (dbm >= -3) {
-        dbm = ESP_PWR_LVL_N3;
-    } else if (dbm >= -6) {
-        dbm = ESP_PWR_LVL_N6;
-    } else if (dbm >= -9) {
-        dbm = ESP_PWR_LVL_N9;
-    } else if (dbm >= -12) {
-        dbm = ESP_PWR_LVL_N12;
-    } else {
-        NIMBLE_LOGE(LOG_TAG, "Unsupported power level");
-        return false;
-    }
-
-    esp_err_t errRc = esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, (esp_power_level_t)dbm);
-    if (errRc != ESP_OK) {
-        NIMBLE_LOGE(LOG_TAG, "esp_ble_tx_power_set: rc=%d", errRc);
-    }
-
-    return errRc == ESP_OK;
+#  ifdef CONFIG_IDF_TARGET_ESP32P4
+    return false; // CONFIG_IDF_TARGET_ESP32P4 does not support esp_ble_tx_power_set
 #  else
-    return 0xFF; // CONFIG_IDF_TARGET_ESP32P4
+    if (dbm % 3 == 2) {
+        dbm++; // round up to the next multiple of 3 to be able to target 20dbm
+    }
+    return setPowerLevel(static_cast<esp_power_level_t>(dbm / 3 + ESP_PWR_LVL_N0));
 #  endif
-
 # else
+    NIMBLE_LOGD(LOG_TAG, ">> setPower: %d", dbm);
     ble_hci_vs_set_tx_pwr_cp cmd{dbm};
     ble_hci_vs_set_tx_pwr_rp rsp{0};
     int rc = ble_hs_hci_send_vs_cmd(BLE_HCI_OCF_VS_SET_TX_PWR, &cmd, sizeof(cmd), &rsp, sizeof(rsp));
@@ -478,35 +491,29 @@ bool NimBLEDevice::setPower(int8_t dbm) {
 
 /**
  * @brief Get the transmission power.
- * @return The power level currently used in dbm.
+ * @return The power level currently used in dbm or 0xFF on error.
  */
 int NimBLEDevice::getPower() {
 # ifdef ESP_PLATFORM
-#  ifndef CONFIG_IDF_TARGET_ESP32P4
-    switch (esp_ble_tx_power_get(ESP_BLE_PWR_TYPE_DEFAULT)) {
-        case ESP_PWR_LVL_N12:
-            return -12;
-        case ESP_PWR_LVL_N9:
-            return -9;
-        case ESP_PWR_LVL_N6:
-            return -6;
-        case ESP_PWR_LVL_N3:
-            return -3;
-        case ESP_PWR_LVL_N0:
-            return 0;
-        case ESP_PWR_LVL_P3:
-            return 3;
-        case ESP_PWR_LVL_P6:
-            return 6;
-        case ESP_PWR_LVL_P9:
-            return 9;
-        default:
-            return 0xFF;
-    }
-#  else
+#  ifdef CONFIG_IDF_TARGET_ESP32P4
     return 0xFF; // CONFIG_IDF_TARGET_ESP32P4 does not support esp_ble_tx_power_get
-#  endif
+#  else
+    int pwr = getPowerLevel();
+    if (pwr < 0) {
+        NIMBLE_LOGE(LOG_TAG, "esp_ble_tx_power_get failed rc=%d", pwr);
+        return 0xFF;
+    }
 
+    if (pwr < ESP_PWR_LVL_N0) {
+        return -3 * (ESP_PWR_LVL_N0 - pwr);
+    }
+
+    if (pwr > ESP_PWR_LVL_N0) {
+        return std::min<int>((pwr - ESP_PWR_LVL_N0) * 3, 20);
+    }
+
+    return 0;
+#  endif
 # else
     return ble_phy_txpwr_get();
 # endif
@@ -607,18 +614,14 @@ bool NimBLEDevice::isBonded(const NimBLEAddress& address) {
 /**
  * @brief Get the address of a bonded peer device by index.
  * @param [in] index The index to retrieve the peer address of.
- * @returns NimBLEAddress of the found bonded peer or nullptr if not found.
+ * @returns NimBLEAddress of the found bonded peer or null address if not found.
  */
 NimBLEAddress NimBLEDevice::getBondedAddress(int index) {
     ble_addr_t peer_id_addrs[MYNEWT_VAL(BLE_STORE_MAX_BONDS)];
     int        num_peers, rc;
     rc = ble_store_util_bonded_peers(&peer_id_addrs[0], &num_peers, MYNEWT_VAL(BLE_STORE_MAX_BONDS));
-    if (rc != 0) {
-        return nullptr;
-    }
-
-    if (index > num_peers || index < 0) {
-        return nullptr;
+    if (rc != 0 || index > num_peers || index < 0) {
+        return NimBLEAddress{};
     }
 
     return NimBLEAddress(peer_id_addrs[index]);
@@ -697,12 +700,12 @@ size_t NimBLEDevice::getWhiteListCount() {
 /**
  * @brief Gets the address at the vector index.
  * @param [in] index The vector index to retrieve the address from.
- * @returns The NimBLEAddress at the whitelist index or nullptr if not found.
+ * @returns The NimBLEAddress at the whitelist index or null address if not found.
  */
 NimBLEAddress NimBLEDevice::getWhiteListAddress(size_t index) {
     if (index > m_whiteList.size()) {
         NIMBLE_LOGE(LOG_TAG, "Invalid index; %u", index);
-        return nullptr;
+        return NimBLEAddress{};
     }
 
     return m_whiteList[index];
@@ -711,6 +714,31 @@ NimBLEAddress NimBLEDevice::getWhiteListAddress(size_t index) {
 /* -------------------------------------------------------------------------- */
 /*                               STACK FUNCTIONS                              */
 /* -------------------------------------------------------------------------- */
+
+# if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+/**
+ * @brief Set the preferred default phy to use for connections.
+ * @param [in] txPhyMask TX PHY. Can be mask of following:
+ * - BLE_GAP_LE_PHY_1M_MASK
+ * - BLE_GAP_LE_PHY_2M_MASK
+ * - BLE_GAP_LE_PHY_CODED_MASK
+ * - BLE_GAP_LE_PHY_ANY_MASK
+ * @param [in] rxPhyMask RX PHY. Can be mask of following:
+ * - BLE_GAP_LE_PHY_1M_MASK
+ * - BLE_GAP_LE_PHY_2M_MASK
+ * - BLE_GAP_LE_PHY_CODED_MASK
+ * - BLE_GAP_LE_PHY_ANY_MASK
+ * @return True if successful.
+ */
+bool NimBLEDevice::setDefaultPhy(uint8_t txPhyMask, uint8_t rxPhyMask) {
+    int rc = ble_gap_set_prefered_default_le_phy(txPhyMask, rxPhyMask);
+    if (rc != 0) {
+        NIMBLE_LOGE(LOG_TAG, "Failed to set default phy; rc=%d %s", rc, NimBLEUtils::returnCodeToString(rc));
+    }
+
+    return rc == 0;
+}
+# endif
 
 /**
  * @brief Host reset, we pass the message so we don't make calls until re-synced.
@@ -928,7 +956,6 @@ bool NimBLEDevice::deinit(bool clearAll) {
             deleteClient(clt);
         }
 # endif
-        m_ignoreList.clear();
     }
 
     return rc == 0;
@@ -1113,17 +1140,21 @@ uint32_t NimBLEDevice::getSecurityPasskey() {
 /**
  * @brief Start the connection securing and authorization for this connection.
  * @param connHandle The connection handle of the peer device.
- * @returns NimBLE stack return code, 0 = success.
+ * @param rcPtr Optional pointer to pass the return code to the caller.
+ * @returns True if successfully started, success = 0 or BLE_HS_EALREADY.
  */
-bool NimBLEDevice::startSecurity(uint16_t connHandle) {
+bool NimBLEDevice::startSecurity(uint16_t connHandle, int* rcPtr) {
     int rc = ble_gap_security_initiate(connHandle);
     if (rc != 0) {
         NIMBLE_LOGE(LOG_TAG, "ble_gap_security_initiate: rc=%d %s", rc, NimBLEUtils::returnCodeToString(rc));
     }
-
+    if (rcPtr) {
+        *rcPtr = rc;
+    }
     return rc == 0 || rc == BLE_HS_EALREADY;
 } // startSecurity
 
+# if defined(CONFIG_BT_NIMBLE_ROLE_CENTRAL) || defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
 /**
  * @brief Inject the provided passkey into the Security Manager.
  * @param [in] peerInfo Connection information for the peer.
@@ -1148,48 +1179,7 @@ bool NimBLEDevice::injectConfirmPasskey(const NimBLEConnInfo& peerInfo, bool acc
     NIMBLE_LOGD(LOG_TAG, "BLE_SM_IOACT_NUMCMP; ble_sm_inject_io result: %d", rc);
     return rc == 0;
 }
-
-/* -------------------------------------------------------------------------- */
-/*                                 IGNORE LIST                                */
-/* -------------------------------------------------------------------------- */
-
-/**
- * @brief Check if the device address is on our ignore list.
- * @param [in] address The address to look for.
- * @return True if ignoring.
- */
-bool NimBLEDevice::isIgnored(const NimBLEAddress& address) {
-    for (const auto& addr : m_ignoreList) {
-        if (addr == address) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-/**
- * @brief Add a device to the ignore list.
- * @param [in] address The address of the device we want to ignore.
- */
-void NimBLEDevice::addIgnored(const NimBLEAddress& address) {
-    if (!isIgnored(address)) {
-        m_ignoreList.push_back(address);
-    }
-}
-
-/**
- * @brief Remove a device from the ignore list.
- * @param [in] address The address of the device we want to remove from the list.
- */
-void NimBLEDevice::removeIgnored(const NimBLEAddress& address) {
-    for (auto it = m_ignoreList.begin(); it < m_ignoreList.end(); ++it) {
-        if (*it == address) {
-            m_ignoreList.erase(it);
-            std::vector<NimBLEAddress>(m_ignoreList).swap(m_ignoreList);
-        }
-    }
-}
+# endif // CONFIG_BT_NIMBLE_ROLE_CENTRAL || CONFIG_BT_NIMBLE_ROLE_PERIPHERAL
 
 /* -------------------------------------------------------------------------- */
 /*                                  UTILITIES                                 */
@@ -1241,7 +1231,8 @@ std::string NimBLEDevice::toString() {
  * @param [in] line The line number where the assert occurred.
  */
 void nimble_cpp_assert(const char* file, unsigned line) {
-    NIMBLE_LOGC("", "Assertion failed at %s:%u\n", file, line);
+    console_printf("Assertion failed at %s:%u\n", file, line);
+    ble_npl_time_delay(10);
     abort();
 }
 # endif // CONFIG_NIMBLE_CPP_DEBUG_ASSERT_ENABLED

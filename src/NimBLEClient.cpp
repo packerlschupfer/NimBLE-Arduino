@@ -1,14 +1,18 @@
 /*
- * NimBLEClient.cpp
+ * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
- *  Created: on Jan 26 2020
- *      Author H2zero
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Originally:
- * BLEClient.cpp
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Created on: Mar 22, 2017
- *      Author: kolban
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include "nimconfig.h"
@@ -63,6 +67,7 @@ NimBLEClient::NimBLEClient(const NimBLEAddress& peerAddress)
       m_pClientCallbacks{&defaultCallbacks},
       m_connHandle{BLE_HS_CONN_HANDLE_NONE},
       m_terminateFailCount{0},
+      m_asyncSecureAttempt{0},
       m_config{},
 # if CONFIG_BT_NIMBLE_EXT_ADV
       m_phyMask{BLE_GAP_LE_PHY_1M_MASK | BLE_GAP_LE_PHY_2M_MASK | BLE_GAP_LE_PHY_CODED_MASK},
@@ -134,7 +139,7 @@ size_t NimBLEClient::deleteService(const NimBLEUUID& uuid) {
  */
 bool NimBLEClient::connect(bool deleteAttributes, bool asyncConnect, bool exchangeMTU) {
     return connect(m_peerAddress, deleteAttributes, asyncConnect, exchangeMTU);
-}
+} // connect
 
 /**
  * @brief Connect to an advertising device.
@@ -147,10 +152,10 @@ bool NimBLEClient::connect(bool deleteAttributes, bool asyncConnect, bool exchan
  * If false, the client will use the default MTU size and the application will need to call exchangeMTU() later.
  * @return true on success.
  */
-bool NimBLEClient::connect(NimBLEAdvertisedDevice* device, bool deleteAttributes, bool asyncConnect, bool exchangeMTU) {
+bool NimBLEClient::connect(const NimBLEAdvertisedDevice* device, bool deleteAttributes, bool asyncConnect, bool exchangeMTU) {
     NimBLEAddress address(device->getAddress());
     return connect(address, deleteAttributes, asyncConnect, exchangeMTU);
-}
+} // connect
 
 /**
  * @brief Connect to a BLE Server by address.
@@ -293,11 +298,25 @@ bool NimBLEClient::connect(const NimBLEAddress& address, bool deleteAttributes, 
 /**
  * @brief Initiate a secure connection (pair/bond) with the server.\n
  * Called automatically when a characteristic or descriptor requires encryption or authentication to access it.
+ * @param [in] async If true, the connection will be secured asynchronously and this function will return immediately.\n
+ * If false, this function will block until the connection is secured or the client disconnects.
  * @return True on success.
- * @details This is a blocking function and should not be used in a callback.
+ * @details If async=false, this function will block and should not be used in a callback.
  */
-bool NimBLEClient::secureConnection() const {
+bool NimBLEClient::secureConnection(bool async) const {
     NIMBLE_LOGD(LOG_TAG, ">> secureConnection()");
+
+    int rc = 0;
+    if (async && !NimBLEDevice::startSecurity(m_connHandle, &rc)) {
+        m_lastErr            = rc;
+        m_asyncSecureAttempt = 0;
+        return false;
+    }
+
+    if (async) {
+        m_asyncSecureAttempt++;
+        return true;
+    }
 
     NimBLETaskData taskData(const_cast<NimBLEClient*>(this), BLE_HS_ENOTCONN);
     m_pTaskData    = &taskData;
@@ -388,7 +407,49 @@ void NimBLEClient::setConfig(NimBLEClient::Config config) {
  */
 void NimBLEClient::setConnectPhy(uint8_t mask) {
     m_phyMask = mask;
-}
+} // setConnectPhy
+
+/**
+ * @brief Request a change to the PHY used for this peer connection.
+ * @param [in] txPhyMask TX PHY. Can be mask of following:
+ * - BLE_GAP_LE_PHY_1M_MASK
+ * - BLE_GAP_LE_PHY_2M_MASK
+ * - BLE_GAP_LE_PHY_CODED_MASK
+ * - BLE_GAP_LE_PHY_ANY_MASK
+ * @param [in] rxPhyMask RX PHY. Can be mask of following:
+ * - BLE_GAP_LE_PHY_1M_MASK
+ * - BLE_GAP_LE_PHY_2M_MASK
+ * - BLE_GAP_LE_PHY_CODED_MASK
+ * - BLE_GAP_LE_PHY_ANY_MASK
+ * @param phyOptions Additional PHY options. Valid values are:
+ * - BLE_GAP_LE_PHY_CODED_ANY (default)
+ * - BLE_GAP_LE_PHY_CODED_S2
+ * - BLE_GAP_LE_PHY_CODED_S8
+ * @return True if successful.
+ */
+bool NimBLEClient::updatePhy(uint8_t txPhyMask, uint8_t rxPhyMask, uint16_t phyOptions) {
+    int rc = ble_gap_set_prefered_le_phy(m_connHandle, txPhyMask, rxPhyMask, phyOptions);
+    if (rc != 0) {
+        NIMBLE_LOGE(LOG_TAG, "Failed to update phy; rc=%d %s", rc, NimBLEUtils::returnCodeToString(rc));
+    }
+
+    return rc == 0;
+} // updatePhy
+
+/**
+ * @brief Get the PHY used for this peer connection.
+ * @param [out] txPhy The TX PHY.
+ * @param [out] rxPhy The RX PHY.
+ * @return True if successful.
+ */
+bool NimBLEClient::getPhy(uint8_t* txPhy, uint8_t* rxPhy) {
+    int rc = ble_gap_read_le_phy(m_connHandle, txPhy, rxPhy);
+    if (rc != 0) {
+        NIMBLE_LOGE(LOG_TAG, "Failed to read phy; rc=%d %s", rc, NimBLEUtils::returnCodeToString(rc));
+    }
+
+    return rc == 0;
+} // getPhy
 # endif
 
 /**
@@ -495,62 +556,6 @@ uint16_t NimBLEClient::getConnHandle() const {
 } // getConnHandle
 
 /**
- * @brief Clear the connection information for this client.
- * @note This is designed to be used to reset the connection information after
- * calling setConnection(), and should not be used to disconnect from a peer.
- * To disconnect from a peer, use disconnect().
- */
-void NimBLEClient::clearConnection() {
-    m_connHandle  = BLE_HS_CONN_HANDLE_NONE;
-    m_peerAddress = NimBLEAddress{};
-} // clearConnection
-
-/**
- * @brief Set the connection information for this client.
- * @param [in] connInfo The connection information.
- * @return True on success.
- * @note Sets the connection established flag to true.
- * @note If the client is already connected to a peer, this will return false.
- * @note This is designed to be used when a connection is made outside of the
- * NimBLEClient class, such as when a connection is made by the
- * NimBLEServer class and the client is passed the connection info.
- * This enables the GATT Server to read the attributes of the client connected to it.
- */
-bool NimBLEClient::setConnection(const NimBLEConnInfo& connInfo) {
-    if (isConnected()) {
-        NIMBLE_LOGE(LOG_TAG, "Already connected");
-        return false;
-    }
-
-    m_peerAddress = connInfo.getAddress();
-    m_connHandle  = connInfo.getConnHandle();
-    return true;
-} // setConnection
-
-/**
- * @brief Set the connection information for this client.
- * @param [in] connHandle The connection handle.
- * @note Sets the connection established flag to true.
- * @note This is designed to be used when a connection is made outside of the
- * NimBLEClient class, such as when a connection is made by the
- * NimBLEServer class and the client is passed the connection handle.
- * This enables the GATT Server to read the attributes of the client connected to it.
- * @note If the client is already connected to a peer, this will return false.
- * @note This will look up the peer address using the connection handle.
- */
-bool NimBLEClient::setConnection(uint16_t connHandle) {
-    // we weren't provided the peer address, look it up using ble_gap_conn_find
-    NimBLEConnInfo connInfo;
-    int            rc = ble_gap_conn_find(connHandle, &connInfo.m_desc);
-    if (rc != 0) {
-        NIMBLE_LOGE(LOG_TAG, "Connection info not found");
-        return false;
-    }
-
-    return setConnection(connInfo);
-} // setConnection
-
-/**
  * @brief Retrieve the address of the peer.
  * @return A NimBLEAddress instance with the peer address data.
  */
@@ -600,7 +605,7 @@ int NimBLEClient::getRssi() const {
  */
 std::vector<NimBLERemoteService*>::iterator NimBLEClient::begin() {
     return m_svcVec.begin();
-}
+} // begin
 
 /**
  * @brief Get iterator to the end of the vector of remote service pointers.
@@ -608,7 +613,7 @@ std::vector<NimBLERemoteService*>::iterator NimBLEClient::begin() {
  */
 std::vector<NimBLERemoteService*>::iterator NimBLEClient::end() {
     return m_svcVec.end();
-}
+} // end
 
 /**
  * @brief Get the service BLE Remote Service instance corresponding to the uuid.
@@ -770,7 +775,7 @@ int NimBLEClient::serviceDiscoveredCB(uint16_t                     connHandle,
     NimBLEClient*   pClient   = (NimBLEClient*)pTaskData->m_pInstance;
 
     if (error->status == BLE_HS_ENOTCONN) {
-        NIMBLE_LOGE(LOG_TAG, "<< Service Discovered; Not connected");
+        NIMBLE_LOGE(LOG_TAG, "<< Service Discovered; Disconnected");
         NimBLEUtils::taskRelease(*pTaskData, error->status);
         return error->status;
     }
@@ -789,7 +794,7 @@ int NimBLEClient::serviceDiscoveredCB(uint16_t                     connHandle,
     NimBLEUtils::taskRelease(*pTaskData, error->status);
     NIMBLE_LOGD(LOG_TAG, "<< Service Discovered");
     return error->status;
-}
+} // serviceDiscoveredCB
 
 /**
  * @brief Get the value of a specific characteristic associated with a specific service.
@@ -863,7 +868,7 @@ NimBLERemoteCharacteristic* NimBLEClient::getCharacteristic(uint16_t handle) {
     }
 
     return nullptr;
-}
+} // getCharacteristic
 
 /**
  * @brief Get the current mtu of this connection.
@@ -891,7 +896,7 @@ int NimBLEClient::exchangeMTUCb(uint16_t conn_handle, const ble_gatt_error* erro
     }
 
     return 0;
-}
+} // exchangeMTUCb
 
 /**
  * @brief Begin the MTU exchange process with the server.
@@ -918,7 +923,7 @@ int NimBLEClient::handleGapEvent(struct ble_gap_event* event, void* arg) {
     int             rc        = 0;
     NimBLETaskData* pTaskData = pClient->m_pTaskData; // save a copy in case client is deleted
 
-    NIMBLE_LOGD(LOG_TAG, "Got Client event %s", NimBLEUtils::gapEventToString(event->type));
+    NIMBLE_LOGD(LOG_TAG, ">> handleGapEvent %s", NimBLEUtils::gapEventToString(event->type));
 
     switch (event->type) {
         case BLE_GAP_EVENT_DISCONNECT: {
@@ -946,7 +951,7 @@ int NimBLEClient::handleGapEvent(struct ble_gap_event* event, void* arg) {
             NIMBLE_LOGD(LOG_TAG, "disconnect; reason=%d, %s", rc, NimBLEUtils::returnCodeToString(rc));
 
             pClient->m_terminateFailCount = 0;
-            NimBLEDevice::removeIgnored(pClient->m_peerAddress);
+            pClient->m_asyncSecureAttempt = 0;
 
             // Don't call the disconnect callback if we are waiting for a connection to complete and it fails
             if (rc != (BLE_HS_ERR_HCI_BASE + BLE_ERR_CONN_ESTABLISHMENT) || pClient->m_config.asyncConnect) {
@@ -979,35 +984,31 @@ int NimBLEClient::handleGapEvent(struct ble_gap_event* event, void* arg) {
             rc = event->connect.status;
             if (rc == 0) {
                 pClient->m_connHandle = event->connect.conn_handle;
+
+                if (pClient->m_config.asyncConnect) {
+                    pClient->m_pClientCallbacks->onConnect(pClient);
+                }
+
                 if (pClient->m_config.exchangeMTU) {
-                    if (!pClient->exchangeMTU() && !pClient->m_config.asyncConnect) {
+                    if (!pClient->exchangeMTU()) {
                         rc = pClient->m_lastErr; // sets the error in the task data
                         break;
                     }
-                }
 
-                // In the case of a multi-connecting device we ignore this device when
-                // scanning since we are already connected to it
-                NimBLEDevice::addIgnored(pClient->m_peerAddress);
+                    return 0; // return as we may have a task waiting for the MTU before releasing it.
+                }
             } else {
                 pClient->m_connHandle = BLE_HS_CONN_HANDLE_NONE;
-                if (!pClient->m_config.asyncConnect) {
-                    break;
-                }
 
-                if (pClient->m_config.deleteOnConnectFail) { // async connect
-                    delete pClient;
-                    return 0;
+                if (pClient->m_config.asyncConnect) {
+                    pClient->m_pClientCallbacks->onConnectFail(pClient, rc);
+                    if (pClient->m_config.deleteOnConnectFail) {
+                        NimBLEDevice::deleteClient(pClient);
+                    }
                 }
             }
 
-            if (pClient->m_config.asyncConnect) {
-                pClient->m_pClientCallbacks->onConnect(pClient);
-            } else if (!pClient->m_config.exchangeMTU) {
-                break; // not waiting for MTU exchange so release the task now.
-            }
-
-            return 0;
+            break;
         } // BLE_GAP_EVENT_CONNECT
 
         case BLE_GAP_EVENT_TERM_FAILURE: {
@@ -1114,7 +1115,12 @@ int NimBLEClient::handleGapEvent(struct ble_gap_event* event, void* arg) {
                 if (event->enc_change.status == (BLE_HS_ERR_HCI_BASE + BLE_ERR_PINKEY_MISSING)) {
                     // Key is missing, try deleting.
                     ble_store_util_delete_peer(&peerInfo.m_desc.peer_id_addr);
+                    // Attempt a retry if async secure failed.
+                    if (pClient->m_asyncSecureAttempt == 1) {
+                        pClient->secureConnection(true);
+                    }
                 } else {
+                    pClient->m_asyncSecureAttempt = 0;
                     pClient->m_pClientCallbacks->onAuthenticationComplete(peerInfo);
                 }
             }
@@ -1134,6 +1140,19 @@ int NimBLEClient::handleGapEvent(struct ble_gap_event* event, void* arg) {
             pClient->m_pClientCallbacks->onIdentity(peerInfo);
             break;
         } // BLE_GAP_EVENT_IDENTITY_RESOLVED
+
+# if CONFIG_BT_NIMBLE_EXT_ADV
+        case BLE_GAP_EVENT_PHY_UPDATE_COMPLETE: {
+            NimBLEConnInfo peerInfo;
+            rc = ble_gap_conn_find(event->phy_updated.conn_handle, &peerInfo.m_desc);
+            if (rc != 0) {
+                return BLE_ATT_ERR_INVALID_HANDLE;
+            }
+
+            pClient->m_pClientCallbacks->onPhyUpdate(pClient, event->phy_updated.tx_phy, event->phy_updated.rx_phy);
+            return 0;
+        } // BLE_GAP_EVENT_PHY_UPDATE_COMPLETE
+# endif
 
         case BLE_GAP_EVENT_MTU: {
             if (pClient->m_connHandle != event->mtu.conn_handle) {
@@ -1188,6 +1207,7 @@ int NimBLEClient::handleGapEvent(struct ble_gap_event* event, void* arg) {
         NimBLEUtils::taskRelease(*pTaskData, rc);
     }
 
+    NIMBLE_LOGD(LOG_TAG, "<< handleGapEvent");
     return 0;
 } // handleGapEvent
 
@@ -1230,26 +1250,31 @@ std::string NimBLEClient::toString() const {
 } // toString
 
 static const char* CB_TAG = "NimBLEClientCallbacks";
+
 /**
  * @brief Get the last error code reported by the NimBLE host
  * @return int, the NimBLE error code.
  */
-int                NimBLEClient::getLastError() const {
+int NimBLEClient::getLastError() const {
     return m_lastErr;
 } // getLastError
 
 void NimBLEClientCallbacks::onConnect(NimBLEClient* pClient) {
     NIMBLE_LOGD(CB_TAG, "onConnect: default");
-}
+} // onConnect
+
+void NimBLEClientCallbacks::onConnectFail(NimBLEClient* pClient, int reason) {
+    NIMBLE_LOGD(CB_TAG, "onConnectFail: default, reason: %d", reason);
+} // onConnectFail
 
 void NimBLEClientCallbacks::onDisconnect(NimBLEClient* pClient, int reason) {
-    NIMBLE_LOGD(CB_TAG, "onDisconnect: default");
-}
+    NIMBLE_LOGD(CB_TAG, "onDisconnect: default, reason: %d", reason);
+} // onDisconnect
 
 bool NimBLEClientCallbacks::onConnParamsUpdateRequest(NimBLEClient* pClient, const ble_gap_upd_params* params) {
     NIMBLE_LOGD(CB_TAG, "onConnParamsUpdateRequest: default");
     return true;
-}
+} // onConnParamsUpdateRequest
 
 void NimBLEClientCallbacks::onPassKeyEntry(NimBLEConnInfo& connInfo) {
     NIMBLE_LOGD(CB_TAG, "onPassKeyEntry: default: 123456");
@@ -1258,7 +1283,7 @@ void NimBLEClientCallbacks::onPassKeyEntry(NimBLEConnInfo& connInfo) {
 
 void NimBLEClientCallbacks::onAuthenticationComplete(NimBLEConnInfo& connInfo) {
     NIMBLE_LOGD(CB_TAG, "onAuthenticationComplete: default");
-}
+} // onAuthenticationComplete
 
 void NimBLEClientCallbacks::onIdentity(NimBLEConnInfo& connInfo) {
     NIMBLE_LOGD(CB_TAG, "onIdentity: default");
@@ -1267,10 +1292,16 @@ void NimBLEClientCallbacks::onIdentity(NimBLEConnInfo& connInfo) {
 void NimBLEClientCallbacks::onConfirmPasskey(NimBLEConnInfo& connInfo, uint32_t pin) {
     NIMBLE_LOGD(CB_TAG, "onConfirmPasskey: default: true");
     NimBLEDevice::injectConfirmPasskey(connInfo, true);
-}
+} // onConfirmPasskey
 
 void NimBLEClientCallbacks::onMTUChange(NimBLEClient* pClient, uint16_t mtu) {
     NIMBLE_LOGD(CB_TAG, "onMTUChange: default");
-}
+} // onMTUChange
+
+# if CONFIG_BT_NIMBLE_EXT_ADV
+void NimBLEClientCallbacks::onPhyUpdate(NimBLEClient* pClient, uint8_t txPhy, uint8_t rxPhy) {
+    NIMBLE_LOGD(CB_TAG, "onPhyUpdate: default, txPhy: %d, rxPhy: %d", txPhy, rxPhy);
+} // onPhyUpdate
+# endif
 
 #endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_CENTRAL */

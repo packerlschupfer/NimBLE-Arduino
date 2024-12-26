@@ -1,15 +1,18 @@
 /*
- * NimBLEDescriptor.h
+ * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
- *  Created: on March 10, 2020
- *      Author H2zero
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Originally:
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * BLEDescriptor.h
- *
- *  Created on: Jun 22, 2017
- *      Author: kolban
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef NIMBLE_CPP_DESCRIPTOR_H_
@@ -18,27 +21,22 @@
 #include "nimconfig.h"
 #if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
 
-class NimBLEDescriptor;
-class NimBLEDescriptorCallbacks;
-
 # include "NimBLELocalValueAttribute.h"
-# include "NimBLECharacteristic.h"
-# include "NimBLEUUID.h"
-# include "NimBLEAttValue.h"
-# include "NimBLEConnInfo.h"
-
 # include <string>
+
+class NimBLECharacteristic;
+class NimBLEDescriptorCallbacks;
 
 /**
  * @brief A model of a BLE descriptor.
  */
 class NimBLEDescriptor : public NimBLELocalValueAttribute {
   public:
-    NimBLEDescriptor(const char* uuid, uint16_t properties, uint16_t max_len, NimBLECharacteristic* pCharacteristic = nullptr);
+    NimBLEDescriptor(const char* uuid, uint16_t properties, uint16_t maxLen, NimBLECharacteristic* pCharacteristic = nullptr);
 
     NimBLEDescriptor(const NimBLEUUID&     uuid,
                      uint16_t              properties,
-                     uint16_t              max_len,
+                     uint16_t              maxLen,
                      NimBLECharacteristic* pCharacteristic = nullptr);
     ~NimBLEDescriptor() = default;
 

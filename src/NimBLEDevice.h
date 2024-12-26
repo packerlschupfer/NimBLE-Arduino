@@ -1,15 +1,18 @@
 /*
- * NimBLEDevice.h
+ * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
- *  Created: on Jan 24 2020
- *      Author H2zero
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Originally:
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * BLEDevice.h
- *
- *  Created on: Mar 16, 2017
- *      Author: kolban
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef NIMBLE_CPP_DEVICE_H_
@@ -18,7 +21,9 @@
 #include "nimconfig.h"
 #if defined(CONFIG_BT_ENABLED)
 # ifdef ESP_PLATFORM
-#  include <esp_bt.h>
+#  ifndef CONFIG_IDF_TARGET_ESP32P4
+#   include <esp_bt.h>
+#  endif
 # endif
 
 # if defined(CONFIG_NIMBLE_CPP_IDF)
@@ -114,8 +119,6 @@ class NimBLEDevice {
     static bool          onWhiteList(const NimBLEAddress& address);
     static size_t        getWhiteListCount();
     static NimBLEAddress getWhiteListAddress(size_t index);
-    static bool          setPower(int8_t dbm);
-    static int           getPower();
     static bool          setOwnAddrType(uint8_t type);
     static bool          setOwnAddr(const NimBLEAddress& addr);
     static bool          setOwnAddr(const uint8_t* addr);
@@ -129,15 +132,25 @@ class NimBLEDevice {
     static void          setSecurityRespKey(uint8_t respKey);
     static void          setSecurityPasskey(uint32_t passKey);
     static uint32_t      getSecurityPasskey();
-    static bool          startSecurity(uint16_t connHandle);
+    static bool          startSecurity(uint16_t connHandle, int* rcPtr = nullptr);
     static bool          setMTU(uint16_t mtu);
     static uint16_t      getMTU();
-    static bool          isIgnored(const NimBLEAddress& address);
-    static void          addIgnored(const NimBLEAddress& address);
-    static void          removeIgnored(const NimBLEAddress& address);
     static void          onReset(int reason);
     static void          onSync(void);
     static void          host_task(void* param);
+    static int           getPower();
+    static bool          setPower(int8_t dbm);
+
+# ifdef ESP_PLATFORM
+#  ifndef CONFIG_IDF_TARGET_ESP32P4
+    static esp_power_level_t getPowerLevel(esp_ble_power_type_t powerType = ESP_BLE_PWR_TYPE_DEFAULT);
+    static bool setPowerLevel(esp_power_level_t powerLevel, esp_ble_power_type_t powerType = ESP_BLE_PWR_TYPE_DEFAULT);
+#  endif
+# endif
+
+# if CONFIG_BT_NIMBLE_EXT_ADV
+    static bool setDefaultPhy(uint8_t txPhyMask, uint8_t rxPhyMask);
+# endif
 
 # if defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER)
     static NimBLEScan* getScan();
@@ -189,7 +202,6 @@ class NimBLEDevice {
   private:
     static bool                       m_synced;
     static bool                       m_initialized;
-    static std::vector<NimBLEAddress> m_ignoreList;
     static uint32_t                   m_passkey;
     static ble_gap_event_listener     m_listener;
     static uint8_t                    m_ownAddrType;
@@ -269,6 +281,12 @@ class NimBLEDevice {
 #   include "NimBLEAdvertising.h"
 #  endif
 # endif
+
+# if defined(CONFIG_BT_NIMBLE_ROLE_CENTRAL) || defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
+#  include "NimBLEConnInfo.h"
+# endif
+
+# include "NimBLEUtils.h"
 
 #endif // CONFIG_BT_ENABLED
 #endif // NIMBLE_CPP_DEVICE_H_
