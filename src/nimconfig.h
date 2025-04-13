@@ -155,6 +155,22 @@
  */
 // #define CONFIG_NIMBLE_CPP_FREERTOS_TASK_BLOCK_BIT 31
 
+/**
+ * @brief Un-comment to disable showing colon characters when printing address.
+ */
+// #define CONFIG_NIMBLE_CPP_ADDR_FMT_EXCLUDE_DELIMITER 1
+
+/**
+ * @brief Un-comment to use uppercase letters when printing address.
+ */
+// #define CONFIG_NIMBLE_CPP_ADDR_FMT_UPPERCASE 1
+
+/**
+ * @brief Un-comment to use mbedtls instead of tinycrypt.
+ * @details This could save approximately 8k of flash if already using mbedtls for other functionality.
+ */
+// #define CONFIG_BT_NIMBLE_CRYPTO_STACK_MBEDTLS 1
+
 /**********************************
  End Arduino user-config
 **********************************/
@@ -349,6 +365,14 @@
 #endif
 #endif
 
+#ifndef CONFIG_BT_NIMBLE_CRYPTO_STACK_MBEDTLS
+#define CONFIG_BT_NIMBLE_CRYPTO_STACK_MBEDTLS 0
+#endif
+
+#ifndef MYNEWT_VAL_BLE_CRYPTO_STACK_MBEDTLS
+#define MYNEWT_VAL_BLE_CRYPTO_STACK_MBEDTLS (CONFIG_BT_NIMBLE_CRYPTO_STACK_MBEDTLS)
+#endif
+
 #ifdef ESP_PLATFORM
 #ifndef CONFIG_BTDM_CONTROLLER_MODE_BLE_ONLY
 #ifndef CONFIG_BTDM_CONTROLLER_MODE_BLE_ONLY
@@ -397,6 +421,11 @@
 #    error Extended advertising is not supported on ESP32.
 #  endif
 #endif
+
+#ifndef CONFIG_BT_NIMBLE_USE_ESP_TIMER
+#define CONFIG_BT_NIMBLE_USE_ESP_TIMER 1
+#endif
+
 #endif // ESP_PLATFORM
 
 #if CONFIG_BT_NIMBLE_ENABLE_PERIODIC_ADV && !CONFIG_BT_NIMBLE_EXT_ADV

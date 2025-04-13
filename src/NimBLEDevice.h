@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * Copyright 2020-2025 Ryan Powell <ryan@nable-embedded.io> and
  * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,6 +66,7 @@ class NimBLEConnInfo;
 # endif
 
 class NimBLEAddress;
+class NimBLEDeviceCallbacks;
 
 # define BLEDevice                    NimBLEDevice
 # define BLEClient                    NimBLEClient
@@ -101,6 +102,13 @@ class NimBLEAddress;
 #  define NIMBLE_MAX_CONNECTIONS CONFIG_NIMBLE_MAX_CONNECTIONS
 # endif
 
+enum class NimBLETxPowerType {
+    All  = 0,
+    Advertise  = 1,
+    Scan = 2,
+    Connection = 3
+};
+
 typedef int (*gap_event_handler)(ble_gap_event* event, void* arg);
 
 /**
@@ -122,6 +130,7 @@ class NimBLEDevice {
     static bool          setOwnAddrType(uint8_t type);
     static bool          setOwnAddr(const NimBLEAddress& addr);
     static bool          setOwnAddr(const uint8_t* addr);
+    static void          setDeviceCallbacks(NimBLEDeviceCallbacks* cb);
     static void          setScanDuplicateCacheSize(uint16_t cacheSize);
     static void          setScanFilterMode(uint8_t type);
     static bool          setCustomGapHandler(gap_event_handler handler);
@@ -138,8 +147,8 @@ class NimBLEDevice {
     static void          onReset(int reason);
     static void          onSync(void);
     static void          host_task(void* param);
-    static int           getPower();
-    static bool          setPower(int8_t dbm);
+    static int           getPower(NimBLETxPowerType type = NimBLETxPowerType::All);
+    static bool          setPower(int8_t dbm, NimBLETxPowerType type = NimBLETxPowerType::All);
 
 # ifdef ESP_PLATFORM
 #  ifndef CONFIG_IDF_TARGET_ESP32P4
@@ -206,6 +215,8 @@ class NimBLEDevice {
     static ble_gap_event_listener     m_listener;
     static uint8_t                    m_ownAddrType;
     static std::vector<NimBLEAddress> m_whiteList;
+    static NimBLEDeviceCallbacks*     m_pDeviceCallbacks;
+    static NimBLEDeviceCallbacks      defaultDeviceCallbacks;
 
 # if defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER)
     static NimBLEScan* m_pScan;
@@ -287,6 +298,28 @@ class NimBLEDevice {
 # endif
 
 # include "NimBLEUtils.h"
+
+/**
+ * @brief Callbacks associated with a BLE device.
+ */
+class NimBLEDeviceCallbacks {
+  public:
+    virtual ~NimBLEDeviceCallbacks() {};
+
+    /**
+     * @brief Indicates an inability to perform a store operation.
+     * This callback should do one of two things:
+     *     -Address the problem and return 0, indicating that the store operation
+     *      should proceed.
+     *     -Return nonzero to indicate that the store operation should be aborted.
+     * @param event     Describes the store event being reported.
+     *                      BLE_STORE_EVENT_FULL; or
+     *                      BLE_STORE_EVENT_OVERFLOW
+     * @return          0 if the store operation should proceed;
+     *                  nonzero if the store operation should be aborted.
+     */
+    virtual int onStoreStatus(struct ble_store_status_event* event, void* arg);
+};
 
 #endif // CONFIG_BT_ENABLED
 #endif // NIMBLE_CPP_DEVICE_H_

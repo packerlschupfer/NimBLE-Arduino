@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * Copyright 2020-2025 Ryan Powell <ryan@nable-embedded.io> and
  * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -359,7 +359,7 @@ NimBLEExtAdvertisement::NimBLEExtAdvertisement(uint8_t priPhy, uint8_t secPhy) {
     m_params.own_addr_type = NimBLEDevice::m_ownAddrType;
     m_params.primary_phy   = priPhy;
     m_params.secondary_phy = secPhy;
-    m_params.tx_power      = 127;
+    m_params.tx_power      = NimBLEDevice::getPower(NimBLETxPowerType::Advertise);
 } // NimBLEExtAdvertisement
 
 /**
@@ -701,6 +701,7 @@ bool NimBLEExtAdvertisement::addServiceUUID(const NimBLEUUID& serviceUUID) {
             type = BLE_HS_ADV_TYPE_COMP_UUIDS128;
             break;
         default:
+            NIMBLE_LOGE(LOG_TAG, "Cannot add UUID, invalid size!");
             return false;
     }
 
@@ -711,10 +712,11 @@ bool NimBLEExtAdvertisement::addServiceUUID(const NimBLEUUID& serviceUUID) {
     }
 
     if (length + getDataSize() > CONFIG_BT_NIMBLE_MAX_EXT_ADV_DATA_LEN) {
+        NIMBLE_LOGE(LOG_TAG, "Cannot add UUID, data length exceeded!");
         return false;
     }
 
-    uint8_t        data[31];
+    uint8_t        data[BLE_HS_ADV_MAX_SZ];
     const uint8_t* uuid = serviceUUID.getValue();
     if (dataLoc == -1) {
         data[0] = 1 + bytes;
@@ -756,6 +758,7 @@ bool NimBLEExtAdvertisement::removeServiceUUID(const NimBLEUUID& serviceUUID) {
             type = BLE_HS_ADV_TYPE_COMP_UUIDS128;
             break;
         default:
+            NIMBLE_LOGE(LOG_TAG, "Cannot remove UUID, invalid size!");
             return false;
     }
 
@@ -878,6 +881,7 @@ bool NimBLEExtAdvertisement::setServices(bool complete, uint8_t size, const std:
             header[1] = complete ? BLE_HS_ADV_TYPE_COMP_UUIDS128 : BLE_HS_ADV_TYPE_INCOMP_UUIDS128;
             break;
         default:
+            NIMBLE_LOGE(LOG_TAG, "Cannot set services, invalid size!");
             return false;
     }
 
@@ -932,6 +936,7 @@ bool NimBLEExtAdvertisement::setServiceData(const NimBLEUUID& uuid, const uint8_
             type = BLE_HS_ADV_TYPE_SVC_DATA_UUID128;
             break;
         default:
+            NIMBLE_LOGE(LOG_TAG, "Cannot set service data, invalid size!");
             return false;
     }
 
@@ -1009,8 +1014,22 @@ bool NimBLEExtAdvertisement::setPreferredParams(uint16_t minInterval, uint16_t m
 /**
  * @brief Adds Tx power level to the advertisement data.
  */
-void NimBLEExtAdvertisement::addTxPower() {
+bool NimBLEExtAdvertisement::addTxPower() {
+    if (m_params.legacy_pdu) {
+        m_params.include_tx_power = 0;
+        uint8_t data[3];
+        data[0] = BLE_HS_ADV_TX_PWR_LVL_LEN + 1;
+        data[1] = BLE_HS_ADV_TYPE_TX_PWR_LVL;
+# ifndef CONFIG_IDF_TARGET_ESP32P4
+        data[2] = NimBLEDevice::getPower(NimBLETxPowerType::Advertise);
+# else
+        data[2] = 0;
+# endif
+        return addData(data, 3);
+    }
+
     m_params.include_tx_power = 1;
+    return true;
 } // addTxPower
 
 /**

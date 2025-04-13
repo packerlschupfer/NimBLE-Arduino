@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * Copyright 2020-2025 Ryan Powell <ryan@nable-embedded.io> and
  * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -119,19 +119,19 @@ int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
             }
 
             if (!advertisedDevice->m_callbackSent) {
-                pScan->m_pScanCallbacks->onDiscovered(advertisedDevice);
                 advertisedDevice->m_callbackSent++;
+                pScan->m_pScanCallbacks->onDiscovered(advertisedDevice);
             }
 
             // If not active scanning or scan response is not available
             // or extended advertisement scanning, report the result to the callback now.
             if (pScan->m_scanParams.passive || !isLegacyAdv || !advertisedDevice->isScannable()) {
-                pScan->m_pScanCallbacks->onResult(advertisedDevice);
                 advertisedDevice->m_callbackSent++;
+                pScan->m_pScanCallbacks->onResult(advertisedDevice);
             } else if (isLegacyAdv && event_type == BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP) {
+                advertisedDevice->m_callbackSent++;
                 // got the scan response report the full data.
                 pScan->m_pScanCallbacks->onResult(advertisedDevice);
-                advertisedDevice->m_callbackSent++;
             }
 
             // If not storing results and we have invoked the callback, delete the device.
@@ -468,19 +468,26 @@ NimBLEScanResults NimBLEScan::getResults() {
  * @brief Clear the stored results of the scan.
  */
 void NimBLEScan::clearResults() {
-    for (const auto& dev : m_scanResults.m_deviceVec) {
-        delete dev;
+    if (m_scanResults.m_deviceVec.size()) {
+        std::vector<NimBLEAdvertisedDevice*> vSwap{};
+        ble_npl_hw_enter_critical();
+        vSwap.swap(m_scanResults.m_deviceVec);
+        ble_npl_hw_exit_critical(0);
+        for (const auto& dev : vSwap) {
+            delete dev;
+        }
     }
-    std::vector<NimBLEAdvertisedDevice*>().swap(m_scanResults.m_deviceVec);
 } // clearResults
 
 /**
  * @brief Dump the scan results to the log.
  */
 void NimBLEScanResults::dump() const {
+#if CONFIG_NIMBLE_CPP_LOG_LEVEL >=3
     for (const auto& dev : m_deviceVec) {
         NIMBLE_LOGI(LOG_TAG, "- %s", dev->toString().c_str());
     }
+#endif
 } // dump
 
 /**

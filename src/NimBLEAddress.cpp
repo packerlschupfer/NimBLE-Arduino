@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * Copyright 2020-2025 Ryan Powell <ryan@nable-embedded.io> and
  * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,18 @@
 # include "NimBLELog.h"
 
 # include <algorithm>
+
+# ifdef CONFIG_NIMBLE_CPP_ADDR_FMT_EXCLUDE_DELIMITER
+#  define NIMBLE_CPP_ADDR_DELIMITER ""
+# else
+#  define NIMBLE_CPP_ADDR_DELIMITER ":"
+# endif
+
+# ifdef CONFIG_NIMBLE_CPP_ADDR_FMT_UPPERCASE
+#  define NIMBLE_CPP_ADDR_FMT "%02X%s%02X%s%02X%s%02X%s%02X%s%02X"
+# else
+#  define NIMBLE_CPP_ADDR_FMT "%02x%s%02x%s%02x%s%02x%s%02x%s%02x"
+# endif
 
 static const char* LOG_TAG = "NimBLEAddress";
 
@@ -61,7 +73,7 @@ NimBLEAddress::NimBLEAddress(const std::string& addr, uint8_t type) {
         std::string mac{addr};
         mac.erase(std::remove(mac.begin(), mac.end(), ':'), mac.end());
         uint64_t address = std::stoull(mac, nullptr, 16);
-        memcpy(this->val, &address, sizeof this->val);
+        memcpy(this->val, &address, sizeof(this->val));
         return;
     }
 
@@ -90,7 +102,7 @@ NimBLEAddress::NimBLEAddress(const uint8_t address[BLE_DEV_ADDR_LEN], uint8_t ty
  * * BLE_ADDR_RANDOM (1)
  */
 NimBLEAddress::NimBLEAddress(const uint64_t& address, uint8_t type) {
-    memcpy(this->val, &address, sizeof this->val);
+    memcpy(this->val, &address, sizeof(this->val));
     this->type = type;
 } // NimBLEAddress
 
@@ -193,7 +205,7 @@ bool NimBLEAddress::operator==(const NimBLEAddress& rhs) const {
         return false;
     }
 
-    return memcmp(rhs.val, this->val, sizeof this->val) == 0;
+    return memcmp(rhs.val, this->val, sizeof(this->val)) == 0;
 } // operator ==
 
 /**
@@ -211,12 +223,12 @@ NimBLEAddress::operator std::string() const {
     char buffer[18];
     snprintf(buffer,
              sizeof(buffer),
-             "%02x:%02x:%02x:%02x:%02x:%02x",
-             this->val[5],
-             this->val[4],
-             this->val[3],
-             this->val[2],
-             this->val[1],
+             NIMBLE_CPP_ADDR_FMT,
+             this->val[5], NIMBLE_CPP_ADDR_DELIMITER,
+             this->val[4], NIMBLE_CPP_ADDR_DELIMITER,
+             this->val[3], NIMBLE_CPP_ADDR_DELIMITER,
+             this->val[2], NIMBLE_CPP_ADDR_DELIMITER,
+             this->val[1], NIMBLE_CPP_ADDR_DELIMITER,
              this->val[0]);
     return std::string{buffer};
 } // operator std::string
@@ -226,7 +238,7 @@ NimBLEAddress::operator std::string() const {
  */
 NimBLEAddress::operator uint64_t() const {
     uint64_t address = 0;
-    memcpy(&address, this->val, sizeof this->val);
+    memcpy(&address, this->val, sizeof(this->val));
     return address;
 } // operator uint64_t
 

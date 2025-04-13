@@ -1,6 +1,62 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [2.2.3] 2025-02-28
+
+## Fixed
+- Added back `NimBLEClient::connect` overload with `NimBLEAdvertisedDevice` parameter to resolve connection error due to NULL address.
+- Crash caused by returning invalid vector entry when retrieving remote descriptors.
+
+## [2.2.2] 2025-02-24
+
+## Fixed
+- Crash when calling `NimBLEClient::DiscoverAttributes`.
+
+## Added
+- `NimBLEDeviceCallbacks` class with a callback for handling bond storage.
+
+## [2.2.1] 2025-01-26
+
+## Fixed
+- remote descriptor discovery error when no descriptors exist.
+- scan filter settings not enabled for esp32s3/c3.
+- remote descriptor discovery returning more than the desired descriptor.
+
+## [2.2.0] 2025-01-12
+
+## Fixed
+- Crash when retrieving descriptors if more than one exists.
+- Incorrect TX power value being advertised.
+- New user guide code for 2.x
+- Potential race condition if `NimBLEScan::clearResults` is called from multiple tasks.
+
+## Changed
+- If privacy is not enabled identity keys will not be shared.
+- `NimBLEDevice::setPower` and `NimBLEDevice::getPower` now take an additional parameter `NimBLETxPowerType` to set/get the power level for different operations.
+- ESP32 devices now use esp_timer instead of freeRTOS timers for BLE operations by default.
+
+## Added
+- Config option to use mbedtls instead of tinycrypt for crypto operations, this will save approximately 8k of flash if already using mbedtls for other applications (https, mqtts, etc..).
+- Config option `CONFIG_NIMBLE_CPP_ADDR_FMT_EXCLUDE_DELIMITER`, if defined will remove the ":" delimiter from the BLE address string.
+- Config option `CONFIG_NIMBLE_CPP_ADDR_FMT_UPPERCASE` if defined will make the BLE address strings uppercase.
+
+## [2.1.3] 2025-01-05
+
+## Fixed
+- Unused variable warning when log level is below info.
+- Race condition in `NimBLEScan` that can cause a crash due to heap corruption if `NimBLEScan::stop` is called from the `onResult` callback.
+- Advertisement data not set if scan response is enabled after the data is set.
+- `NimBLECharacteristic`/`NimBLEDescriptor` not able to update their values in the `onRead` callback.
+- Too short of a timeout being requested in NimBLE_Server example leading to frequent disconnects.
+
+## Changed
+- `NimBLEHIDDevice` now allows for the same report ID in multiple input/output/feature reports.
+
+## Added
+- Error logs in the case that NIMBLE_CPP_DEBUG_ASSERT is not defined.
+- Error logs when setting advertisement data fails.
+- Missing documentation in the migration guide about enabling automatic advertising on disconnect, which was disabled by default in 2.x.
+
 ## [2.1.2] 2024-12-21
 
 ## Fixed

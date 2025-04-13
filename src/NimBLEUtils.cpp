@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * Copyright 2020-2025 Ryan Powell <ryan@nable-embedded.io> and
  * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,9 @@
 # include <climits>
 
 # if defined INC_FREERTOS_H
+#  ifndef CONFIG_NIMBLE_CPP_FREERTOS_TASK_BLOCK_BIT
+#   define CONFIG_NIMBLE_CPP_FREERTOS_TASK_BLOCK_BIT 31
+#  endif
 constexpr uint32_t TASK_BLOCK_BIT = (1 << CONFIG_NIMBLE_CPP_FREERTOS_TASK_BLOCK_BIT);
 # endif
 

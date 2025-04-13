@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Ryan Powell <ryan@nable-embedded.io> and
+ * Copyright 2020-2025 Ryan Powell <ryan@nable-embedded.io> and
  * esp-nimble-cpp, NimBLE-Arduino contributors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -82,7 +82,7 @@ class NimBLEHIDDevice {
     NimBLECharacteristic* m_protocolModeChr{nullptr}; // 0x2a4e
     NimBLECharacteristic* m_batteryLevelChr{nullptr}; // 0x2a19
 
-    NimBLECharacteristic* locateReportCharacteristicById(uint8_t reportId, uint8_t& reportType);
+    NimBLECharacteristic* locateReportCharacteristicByIdAndType(uint8_t reportId, uint8_t reportType);
 };
 
 #endif // CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_BROADCASTER && defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
