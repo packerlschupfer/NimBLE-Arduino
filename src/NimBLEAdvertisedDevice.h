@@ -95,6 +95,20 @@ class NimBLEAdvertisedDevice {
 # endif
     operator NimBLEAddress() const;
 
+#if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+    /**
+     * @brief Get the high-resolution timestamp when this device was last seen.
+     * @return The high-resolution timestamp.
+     */
+    uint64_t getHrTimestamp() const;
+    
+    /**
+     * @brief Set the high-resolution timestamp when this device was last seen.
+     * @param [in] timestamp The high-resolution timestamp.
+     */
+    void setHrTimestamp(uint64_t timestamp);
+#endif
+
     const std::vector<uint8_t>&                getPayload() const;
     const std::vector<uint8_t>::const_iterator begin() const;
     const std::vector<uint8_t>::const_iterator end() const;
@@ -170,6 +184,10 @@ class NimBLEAdvertisedDevice {
     uint8_t  m_secPhy{};
     uint16_t m_periodicItvl{};
 # endif
+
+#if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+    uint64_t m_hrTimestamp{};
+#endif
 
     std::vector<uint8_t> m_payload;
 };

@@ -40,6 +40,9 @@ NimBLEAdvertisedDevice::NimBLEAdvertisedDevice(const ble_gap_event* event, uint8
       m_advLength{event->ext_disc.length_data},
       m_isLegacyAdv{!!(event->ext_disc.props & BLE_HCI_ADV_LEGACY_MASK)},
       m_sid{event->ext_disc.sid},
+#if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+      m_hrTimestamp{0},
+#endif
       m_primPhy{event->ext_disc.prim_phy},
       m_secPhy{event->ext_disc.sec_phy},
       m_periodicItvl{event->ext_disc.periodic_adv_itvl},
@@ -50,6 +53,9 @@ NimBLEAdvertisedDevice::NimBLEAdvertisedDevice(const ble_gap_event* event, uint8
       m_rssi{event->disc.rssi},
       m_callbackSent{0},
       m_advLength{event->disc.length_data},
+#if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+      m_hrTimestamp{0},
+#endif
       m_payload(event->disc.data, event->disc.data + event->disc.length_data) {
 # endif
 } // NimBLEAdvertisedDevice
@@ -813,5 +819,23 @@ const std::vector<uint8_t>::const_iterator NimBLEAdvertisedDevice::begin() const
 const std::vector<uint8_t>::const_iterator NimBLEAdvertisedDevice::end() const {
     return m_payload.cend();
 }
+
+#if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+/**
+ * @brief Get the high-resolution timestamp when this device was last seen.
+ * @return The high-resolution timestamp.
+ */
+uint64_t NimBLEAdvertisedDevice::getHrTimestamp() const {
+    return m_hrTimestamp;
+}
+
+/**
+ * @brief Set the high-resolution timestamp when this device was last seen.
+ * @param [in] timestamp The high-resolution timestamp.
+ */
+void NimBLEAdvertisedDevice::setHrTimestamp(uint64_t timestamp) {
+    m_hrTimestamp = timestamp;
+}
+#endif
 
 #endif /* CONFIG_BT_ENABLED  && CONFIG_BT_NIMBLE_ROLE_CENTRAL */

@@ -123,6 +123,13 @@ int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
                 }
             }
 
+            // Update the advertised device timestamp
+            advertisedDevice->m_timestamp = time(nullptr);
+#if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+            advertisedDevice->m_hrTimestamp = esp_timer_get_time();
+#endif
+            advertisedDevice->setRSSI(disc.rssi);
+
             if (!advertisedDevice->m_callbackSent) {
                 advertisedDevice->m_callbackSent++;
                 pScan->m_pScanCallbacks->onDiscovered(advertisedDevice);

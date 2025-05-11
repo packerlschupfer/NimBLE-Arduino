@@ -39,6 +39,10 @@ NimBLEAttValue::NimBLEAttValue(uint16_t init_len, uint16_t max_len)
       ,
       m_timestamp{}
 # endif
+# if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+      ,
+      m_hrTimestamp{}
+# endif
 {
     NIMBLE_CPP_DEBUG_ASSERT(m_attr_value);
     if (m_attr_value == nullptr) {
@@ -70,6 +74,7 @@ NimBLEAttValue& NimBLEAttValue::operator=(NimBLEAttValue&& source) {
         m_attr_len     = source.m_attr_len;
         m_capacity     = source.m_capacity;
         setTimeStamp(source.getTimeStamp());
+        setHrTimeStamp(source.getHrTimeStamp());
         source.m_attr_value = nullptr;
     }
 
@@ -99,16 +104,72 @@ void NimBLEAttValue::deepCopy(const NimBLEAttValue& source) {
     m_attr_len     = source.m_attr_len;
     m_capacity     = source.m_capacity;
     setTimeStamp(source.getTimeStamp());
+    setHrTimeStamp(source.getHrTimeStamp());
     memcpy(m_attr_value, source.m_attr_value, m_attr_len + 1);
     ble_npl_hw_exit_critical(0);
 }
 
+// Get the value with timestamp
+const uint8_t* NimBLEAttValue::getValue(time_t* timestamp) {
+    if (timestamp != nullptr) {
+# if CONFIG_NIMBLE_CPP_ATT_VALUE_TIMESTAMP_ENABLED
+        *timestamp = m_timestamp;
+# else
+        *timestamp = 0;
+# endif
+    }
+    return m_attr_value;
+}
+
+# if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+// Get the value with high-resolution timestamp
+const uint8_t* NimBLEAttValue::getValue(uint64_t* hrTimestamp) {
+    if(hrTimestamp != nullptr) {
+        *hrTimestamp = m_hrTimestamp;
+    }
+    return m_attr_value;
+}
+# endif
+
 // Set the value of the attribute.
 bool NimBLEAttValue::setValue(const uint8_t* value, uint16_t len) {
-    m_attr_len      = 0; // Just set the value length to 0 and append instead of repeating code.
-    m_attr_value[0] = '\0'; // Set the first byte to 0 incase the len of the new value is 0.
-    append(value, len);
-    return memcmp(m_attr_value, value, len) == 0 && m_attr_len == len;
+    if (len > m_attr_max_len) {
+        NIMBLE_LOGE(LOG_TAG, "value exceeds max, len=%u, max=%u",
+                   len, m_attr_max_len);
+        return false;
+    }
+
+    uint8_t* res = m_attr_value;
+    if (len > m_capacity) {
+        res = static_cast<uint8_t*>(realloc(m_attr_value, len + 1));
+        NIMBLE_CPP_DEBUG_ASSERT(res);
+        if (res == nullptr) {
+            NIMBLE_LOGE(LOG_TAG, "Failed to realloc setValue");
+            return false;
+        }
+        m_capacity = len;
+    }
+
+# if CONFIG_NIMBLE_CPP_ATT_VALUE_TIMESTAMP_ENABLED
+    setTimeStamp();
+# else
+    time_t t = 0;
+# endif
+
+# if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+    setHrTimeStamp();
+# else
+    setHrTimeStamp(0);
+# endif
+
+    ble_npl_hw_enter_critical();
+    m_attr_value = res;
+    memcpy(m_attr_value, value, len);
+    m_attr_len = len;
+    m_attr_value[len] = '\0';
+    ble_npl_hw_exit_critical(0);
+
+    return true;
 }
 
 // Append the new data, allocate as necessary.
@@ -140,12 +201,19 @@ NimBLEAttValue& NimBLEAttValue::append(const uint8_t* value, uint16_t len) {
     time_t t = 0;
 # endif
 
+# if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+    uint64_t hrTimestamp = esp_timer_get_time();
+# else
+    uint64_t hrTimestamp = 0;
+# endif
+
     ble_npl_hw_enter_critical();
     memcpy(res + m_attr_len, value, len);
     m_attr_value             = res;
     m_attr_len               = new_len;
     m_attr_value[m_attr_len] = '\0';
     setTimeStamp(t);
+    setHrTimeStamp(hrTimestamp);
     ble_npl_hw_exit_critical(0);
 
     return *this;

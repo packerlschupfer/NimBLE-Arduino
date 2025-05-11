@@ -28,6 +28,14 @@
  */
 // #define CONFIG_NIMBLE_CPP_ATT_VALUE_TIMESTAMP_ENABLED 0
 
+/** @brief Un-comment to enable storing the hrtimestamp when an attribute value is updated\n
+ *  This allows for checking the last update time using getHrTimeStamp() or getValue(time_t*)\n
+ *  If disabled, the timestamp returned from these functions will be 0.\n
+ *  Disabling timestamps will reduce the memory used for each value.\n
+ *  1 = Enabled, 0 = Disabled; Default = Disabled
+ */
+// #define CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED 0
+
 /** @brief Uncomment to set the default allocation size (bytes) for each attribute if\n
  *  not specified when the constructor is called. This is also the size used when a remote\n
  *  characteristic or descriptor is constructed before a value is read/notified.\n

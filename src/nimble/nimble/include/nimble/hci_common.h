@@ -937,6 +937,7 @@ struct ble_hci_le_read_iso_tx_sync_rp {
     uint16_t conn_handle;
     uint16_t packet_seq_num;
     uint32_t tx_timestamp;
+    uint64_t HrTimestamp;
     uint8_t time_offset[3];
 } __attribute__((packed));
 

@@ -30,8 +30,21 @@
 # include <cstring>
 # include <cstdint>
 
+# include "esp_timer.h"  // Include ESP-IDF timer for high-resolution timing
+
 # ifndef CONFIG_NIMBLE_CPP_ATT_VALUE_TIMESTAMP_ENABLED
 #  define CONFIG_NIMBLE_CPP_ATT_VALUE_TIMESTAMP_ENABLED 0
+# endif
+
+# ifndef CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+#  define CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED 0
+# endif
+
+// Include necessary headers if high-resolution timestamp is enabled
+# if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+// Assuming esp_timer_get_time() is used for high-resolution timing
+// and its related header is required.
+#  include "esp_timer.h"
 # endif
 
 # ifndef BLE_ATT_ATTR_MAX_LEN
@@ -75,6 +88,9 @@ class NimBLEAttValue {
     uint16_t m_capacity{};
 # if CONFIG_NIMBLE_CPP_ATT_VALUE_TIMESTAMP_ENABLED
     time_t m_timestamp{};
+# endif
+# if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+    uint64_t m_hrTimestamp{};
 # endif
     void deepCopy(const NimBLEAttValue& source);
 
@@ -187,6 +203,24 @@ class NimBLEAttValue {
     void   setTimeStamp(time_t t) {}
 # endif
 
+# if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+    /** @brief Returns a high-resolution timestamp of when the value was last updated */
+    uint64_t getHrTimeStamp() const { return m_hrTimestamp; }
+
+    /** @brief Set the high-resolution timestamp to the current time */
+    void setHrTimeStamp() { m_hrTimestamp = esp_timer_get_time(); }
+
+    /**
+     * @brief Set the high-resolution timestamp to the specified time
+     * @param[in] timestamp The high-resolution timestamp value to set
+     */
+    void setHrTimeStamp(uint64_t timestamp) { m_hrTimestamp = timestamp; }
+# else
+    uint64_t getHrTimeStamp() const { return 0; }
+    void     setHrTimeStamp() {}
+    void     setHrTimeStamp(uint64_t timestamp) {}
+# endif
+
     /**
      * @brief Set the value from a buffer
      * @param[in] value A pointer to a buffer containing the value.
@@ -217,6 +251,20 @@ class NimBLEAttValue {
         }
         return *this;
     }
+
+    /**
+     * @brief Get the value with timestamp
+     * @param[out] timestamp A pointer to store the timestamp
+     * @returns A pointer to the internal value buffer.
+     */
+    const uint8_t* getValue(time_t* timestamp);
+
+    /**
+     * @brief Get the value with high-resolution timestamp
+     * @param[out] hrTimestamp A pointer to store the high-resolution timestamp
+     * @returns A pointer to the internal value buffer.
+     */
+    const uint8_t* getValue(uint64_t* hrTimestamp);
 
     /**
      * @brief Append data to the value.
@@ -321,6 +369,24 @@ class NimBLEAttValue {
             }
             return *(reinterpret_cast<const T*>(m_attr_value));
         }
+    }
+
+    /**
+     * @brief Template to return the value as a <type\> with high-resolution timestamp.
+     * @tparam T The type to convert the data to.
+     * @param [in] hrTimestamp A pointer to a uint64_t to store the high-resolution timestamp of the value.
+     * @param [in] skipSizeCheck If true it will skip checking if the data size is less than\n
+     * <tt>sizeof(<type\>)</tt>.
+     * @return The data converted to <type\> or NULL if skipSizeCheck is false and the data is\n
+     * less than <tt>sizeof(<type\>)</tt>.
+     * @details <b>Use:</b> <tt>getValueHr<type>(&hrTimestamp, skipSizeCheck);</tt>
+     */
+    template <typename T>
+    T getValueHr(uint64_t* hrTimestamp = nullptr, bool skipSizeCheck = false) {
+        if (!skipSizeCheck && size() < sizeof(T)) {
+            return T();
+        }
+        return *((T*)getValue(hrTimestamp)); // Calls the overloaded getValue for uint64_t
     }
 
     /*********************** Operators ************************/
