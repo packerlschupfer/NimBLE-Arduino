@@ -153,7 +153,7 @@ bool NimBLEAttValue::setValue(const uint8_t* value, uint16_t len) {
 # if CONFIG_NIMBLE_CPP_ATT_VALUE_TIMESTAMP_ENABLED
     setTimeStamp();
 # else
-    time_t t = 0;
+    // time_t t = 0;
 # endif
 
 # if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED

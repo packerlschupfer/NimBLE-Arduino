@@ -56,7 +56,9 @@
 static sys_slist_t idle_waiters;
 static atomic_t pending_notifications;
 
+#if (MYNEWT_VAL(BLE_MESH_GATT_PROXY))
 static void proxy_send_beacons(struct ble_npl_event *work);
+#endif
 
 static int proxy_send(uint16_t conn_handle,
 	const void *data, uint16_t len);
@@ -320,14 +322,15 @@ static int beacon_send(struct bt_mesh_proxy_client *client, struct bt_mesh_subne
 	os_mbuf_free_chain(buf);
 	return rc;
 }
-
+#if (MYNEWT_VAL(BLE_MESH_GATT_PROXY))
 static int send_beacon_cb(struct bt_mesh_subnet *sub, void *cb_data)
 {
 	struct bt_mesh_proxy_client *client = cb_data;
 
 	return beacon_send(client, sub);
 }
-
+#endif
+#if (MYNEWT_VAL(BLE_MESH_GATT_PROXY))
 static void proxy_send_beacons(struct ble_npl_event *work)
 {
 	struct bt_mesh_proxy_client *client;
@@ -336,6 +339,7 @@ static void proxy_send_beacons(struct ble_npl_event *work)
 
 	(void)bt_mesh_subnet_find(send_beacon_cb, client);
 }
+#endif
 
 void bt_mesh_proxy_beacon_send(struct bt_mesh_subnet *sub)
 {
@@ -622,7 +626,7 @@ static int gatt_proxy_advertise(struct bt_mesh_subnet *sub)
 
 	return err;
 }
-
+#if (MYNEWT_VAL(BLE_MESH_GATT_PROXY))
 static void subnet_evt(struct bt_mesh_subnet *sub, enum bt_mesh_key_evt evt)
 {
 	if (evt == BT_MESH_KEY_DELETED) {
@@ -633,7 +637,8 @@ static void subnet_evt(struct bt_mesh_subnet *sub, enum bt_mesh_key_evt evt)
 		bt_mesh_proxy_beacon_send(sub);
 	}
 }
-
+#endif
+#if (MYNEWT_VAL(BLE_MESH_GATT_PROXY))
 static void proxy_ccc_write(uint16_t conn_handle)
 {
 	struct bt_mesh_proxy_client *client;
@@ -648,6 +653,7 @@ static void proxy_ccc_write(uint16_t conn_handle)
 		k_work_submit(&client->send_beacons);
 	}
 }
+#endif
 
 int bt_mesh_proxy_gatt_enable(void)
 {
