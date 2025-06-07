@@ -53,6 +53,12 @@ NimBLEScan::~NimBLEScan() {
 int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
     (void)arg;
     NimBLEScan* pScan = NimBLEDevice::getScan();
+    
+    // CRITICAL FIX: Capture timestamps IMMEDIATELY on entry
+    time_t currentTime = time(nullptr);
+#if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+    uint64_t hrTimestamp = esp_timer_get_time();
+#endif
 
     switch (event->type) {
         case BLE_GAP_EVENT_EXT_DISC:
@@ -112,10 +118,24 @@ int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
                 }
 
                 advertisedDevice = new NimBLEAdvertisedDevice(event, event_type);
+                
+                // CRITICAL FIX: Set the captured timestamps
+                advertisedDevice->m_timestamp = currentTime;
+#if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+                advertisedDevice->setHrTimestamp(hrTimestamp);
+#endif
                 pScan->m_scanResults.m_deviceVec.push_back(advertisedDevice);
                 NIMBLE_LOGI(LOG_TAG, "New advertiser: %s", advertisedAddress.toString().c_str());
             } else {
+                // Existing device update
                 advertisedDevice->update(event, event_type);
+                
+                // CRITICAL FIX: Set the captured timestamps
+                advertisedDevice->m_timestamp = currentTime;
+#if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+                advertisedDevice->setHrTimestamp(hrTimestamp);
+#endif
+
                 if (isLegacyAdv && event_type == BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP) {
                     NIMBLE_LOGI(LOG_TAG, "Scan response from: %s", advertisedAddress.toString().c_str());
                 } else {
@@ -123,13 +143,12 @@ int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
                 }
             }
 
-            // Update the advertised device timestamp
-            advertisedDevice->m_timestamp = time(nullptr);
+#if CONFIG_NIMBLE_CPP_ATT_VALUE_TIMESTAMP_ENABLED
+            advertisedDevice->setTimestamp(time(nullptr));
+#endif
 #if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
             advertisedDevice->m_hrTimestamp = esp_timer_get_time();
 #endif
-            advertisedDevice->setRSSI(disc.rssi);
-
             if (!advertisedDevice->m_callbackSent) {
                 advertisedDevice->m_callbackSent++;
                 pScan->m_pScanCallbacks->onDiscovered(advertisedDevice);

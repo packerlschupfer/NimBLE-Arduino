@@ -820,6 +820,14 @@ const std::vector<uint8_t>::const_iterator NimBLEAdvertisedDevice::end() const {
     return m_payload.cend();
 }
 
+/**
+ * @brief Get the timestamp when this device was last seen.
+ * @return The timestamp in seconds since epoch.
+ */
+time_t NimBLEAdvertisedDevice::getTimestamp() const {
+    return m_timestamp;
+}
+
 #if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
 /**
  * @brief Get the high-resolution timestamp when this device was last seen.

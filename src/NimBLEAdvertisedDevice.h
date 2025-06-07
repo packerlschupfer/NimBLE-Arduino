@@ -34,6 +34,9 @@
 # endif
 
 # include <vector>
+#include <time.h>
+#include "esp_timer.h"
+
 
 class NimBLEScan;
 /**
@@ -71,6 +74,8 @@ class NimBLEAdvertisedDevice {
     int8_t               getTXPower() const;
     uint8_t              getAdvLength() const;
     uint8_t              getAddressType() const;
+    time_t               getTimestamp() const;
+    uint64_t             getHrTimestamp() const;
     bool                 isAdvertisingService(const NimBLEUUID& uuid) const;
     bool                 haveAppearance() const;
     bool                 haveManufacturerData() const;
@@ -87,6 +92,7 @@ class NimBLEAdvertisedDevice {
     bool                 isConnectable() const;
     bool                 isScannable() const;
     bool                 isLegacyAdvertisement() const;
+
 # if CONFIG_BT_NIMBLE_EXT_ADV
     uint8_t  getSetId() const;
     uint8_t  getPrimaryPhy() const;
@@ -96,11 +102,11 @@ class NimBLEAdvertisedDevice {
     operator NimBLEAddress() const;
 
 #if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
-    /**
-     * @brief Get the high-resolution timestamp when this device was last seen.
-     * @return The high-resolution timestamp.
-     */
-    uint64_t getHrTimestamp() const;
+    // /**
+    //  * @brief Get the high-resolution timestamp when this device was last seen.
+    //  * @return The high-resolution timestamp.
+    //  */
+    // uint64_t getHrTimestamp() const;
     
     /**
      * @brief Set the high-resolution timestamp when this device was last seen.
@@ -174,6 +180,8 @@ class NimBLEAdvertisedDevice {
     NimBLEAddress m_address{};
     uint8_t       m_advType{};
     int8_t        m_rssi{};
+    time_t        m_timestamp;
+    uint64_t      m_hrTimestamp;
     uint8_t       m_callbackSent{};
     uint8_t       m_advLength{};
 
@@ -185,9 +193,9 @@ class NimBLEAdvertisedDevice {
     uint16_t m_periodicItvl{};
 # endif
 
-#if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
-    uint64_t m_hrTimestamp{};
-#endif
+// #if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+//     uint64_t m_hrTimestamp{};
+// #endif
 
     std::vector<uint8_t> m_payload;
 };
