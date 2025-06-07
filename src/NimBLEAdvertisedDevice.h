@@ -184,6 +184,7 @@ class NimBLEAdvertisedDevice {
     uint64_t      m_hrTimestamp;
     uint8_t       m_callbackSent{};
     uint8_t       m_advLength{};
+    uint8_t       m_lastBeaconCount{0xFF};  // Track last beacon count for duplicate detection
 
 # if CONFIG_BT_NIMBLE_EXT_ADV
     bool     m_isLegacyAdv{};

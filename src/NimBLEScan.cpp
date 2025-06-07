@@ -129,6 +129,37 @@ int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
             } else {
                 // Existing device update
                 advertisedDevice->update(event, event_type);
+
+            // Duplicate detection:
+            bool isNewBeacon = true;  // Default to true for new devices
+
+            if (advertisedDevice->haveServiceData()) {
+                std::string serviceData = advertisedDevice->getServiceData();
+                if (serviceData.length() >= 14) {  // PVVX custom format
+                    uint8_t currentCount = serviceData[13];  // Beacon count at byte 13
+                    
+                    // Check if this is a duplicate (same count as last time)
+                    if (advertisedDevice->m_lastBeaconCount != 0xFF && 
+                        currentCount == advertisedDevice->m_lastBeaconCount) {
+                        isNewBeacon = false;
+                        NIMBLE_LOGD(LOG_TAG, "Duplicate beacon detected: count=%d", currentCount);
+                    } else {
+                        advertisedDevice->m_lastBeaconCount = currentCount;
+                        NIMBLE_LOGD(LOG_TAG, "New beacon detected: count=%d", currentCount);
+                    }
+                }
+            }
+
+            // Only update timestamps for genuinely new beacons
+            if (isNewBeacon) {
+            #if CONFIG_NIMBLE_CPP_ATT_VALUE_TIMESTAMP_ENABLED
+                advertisedDevice->m_timestamp = currentTime;
+            #endif
+            #if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
+                advertisedDevice->m_hrTimestamp = hrTimestamp;
+            #endif
+            }
+
                 
                 // CRITICAL FIX: Set the captured timestamps
                 advertisedDevice->m_timestamp = currentTime;
@@ -144,10 +175,10 @@ int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
             }
 
 #if CONFIG_NIMBLE_CPP_ATT_VALUE_TIMESTAMP_ENABLED
-            advertisedDevice->setTimestamp(time(nullptr));
+            advertisedDevice->m_timestamp = currentTime;  // Use the timestamp captured at entry
 #endif
 #if CONFIG_NIMBLE_CPP_ATT_VALUE_HRTIMESTAMP_ENABLED
-            advertisedDevice->m_hrTimestamp = esp_timer_get_time();
+            advertisedDevice->m_hrTimestamp = hrTimestamp;  // Use the timestamp captured at entry
 #endif
             if (!advertisedDevice->m_callbackSent) {
                 advertisedDevice->m_callbackSent++;
