@@ -1,6 +1,10 @@
 //
 // (C) Dr. Michael 'Mickey' Lauer <mickey@vanille-media.de>
 //
+#include "nimconfig.h"
+
+#if CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || defined(CONFIG_BT_NIMBLE_ROLE_CENTRAL) || defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
+
 #include "NimBLEL2CAPChannel.h"
 
 #include "NimBLEClient.h"
@@ -302,3 +306,5 @@ int NimBLEL2CAPChannel::handleL2capEvent(struct ble_l2cap_event* event, void* ar
 
     return returnValue;
 }
+
+#endif /* CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || CONFIG_BT_NIMBLE_ROLE_CENTRAL || CONFIG_BT_NIMBLE_ROLE_PERIPHERAL */

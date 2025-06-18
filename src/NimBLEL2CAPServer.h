@@ -5,6 +5,10 @@
 #define NIMBLEL2CAPSERVER_H
 #pragma once
 
+#include "nimconfig.h"
+
+#if CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
+
 #include "inttypes.h"
 #include <vector>
 
@@ -35,4 +39,6 @@ class NimBLEL2CAPServer {
     friend class NimBLEDevice;
 };
 
-#endif
+#endif /* CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || CONFIG_BT_NIMBLE_ROLE_PERIPHERAL */
+
+#endif /* NIMBLEL2CAPSERVER_H */

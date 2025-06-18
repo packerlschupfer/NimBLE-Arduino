@@ -1,6 +1,10 @@
 //
 // (C) Dr. Michael 'Mickey' Lauer <mickey@vanille-media.de>
 //
+#include "nimconfig.h"
+
+#if CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
+
 #include "NimBLEL2CAPServer.h"
 #include "NimBLEL2CAPChannel.h"
 #include "NimBLEDevice.h"
@@ -33,3 +37,5 @@ NimBLEL2CAPChannel* NimBLEL2CAPServer::createService(const uint16_t             
     this->services.push_back(service);
     return service;
 }
+
+#endif /* CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || CONFIG_BT_NIMBLE_ROLE_PERIPHERAL */

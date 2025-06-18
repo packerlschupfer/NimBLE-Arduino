@@ -7,6 +7,8 @@
 
 # include "nimconfig.h"
 
+#if CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || defined(CONFIG_BT_NIMBLE_ROLE_CENTRAL) || defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
+
 # include "inttypes.h"
 # if defined(CONFIG_NIMBLE_CPP_IDF)
 #  include "host/ble_l2cap.h"
@@ -121,4 +123,6 @@ class NimBLEL2CAPChannelCallbacks {
     virtual void onDisconnect(NimBLEL2CAPChannel* channel) {};
 };
 
-#endif
+#endif /* CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || CONFIG_BT_NIMBLE_ROLE_CENTRAL || CONFIG_BT_NIMBLE_ROLE_PERIPHERAL */
+
+#endif /* NIMBLEL2CAPCHANNEL_H */
