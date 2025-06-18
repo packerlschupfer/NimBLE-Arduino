@@ -3,6 +3,13 @@
 //
 #include "nimconfig.h"
 
+// Include ble_hs.h to ensure error codes are always available
+#if defined(CONFIG_NIMBLE_CPP_IDF)
+# include "host/ble_hs.h"
+#else
+# include "nimble/nimble/host/include/host/ble_hs.h"
+#endif
+
 #if CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || defined(CONFIG_BT_NIMBLE_ROLE_CENTRAL) || defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
 
 #include "NimBLEL2CAPChannel.h"

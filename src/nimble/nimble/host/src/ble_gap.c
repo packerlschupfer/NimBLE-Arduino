@@ -1761,6 +1761,14 @@ ble_gap_adv_active_instance(uint8_t instance)
     /* Assume read is atomic; mutex not necessary. */
     return ble_gap_slave[instance].op == BLE_GAP_OP_S_ADV;
 }
+#else
+/* Stub function for observer-only mode */
+static int
+ble_gap_adv_active_instance(uint8_t instance)
+{
+    /* No advertising in observer-only mode */
+    return 0;
+}
 #endif
 
 #if MYNEWT_VAL(BLE_EXT_ADV)
@@ -2577,7 +2585,7 @@ ble_gap_rd_rem_sup_feat_tx(uint16_t handle)
                                         BLE_HCI_OCF_LE_RD_REM_FEAT),
                              &cmd, sizeof(cmd), NULL, 0);
 }
-#endif
+
 static int
 ble_gap_rd_rem_ver_tx(uint16_t handle)
 {
@@ -2589,6 +2597,7 @@ ble_gap_rd_rem_ver_tx(uint16_t handle)
                                         BLE_HCI_OCF_RD_REM_VER_INFO),
                              &cmd, sizeof(cmd), NULL, 0);
 }
+#endif
 
 
 /**
