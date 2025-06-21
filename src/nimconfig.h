@@ -155,6 +155,13 @@
 /** @brief Un-comment to change the stack size for the NimBLE host task */
 // #define CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE 4096
 
+/** @brief Un-comment to disable the whitelist API.
+ *  @details Disables whitelist functionality to save code space.
+ *           WARNING: This will break scanning filters that use whitelist!
+ *           Only use if you don't need scan filtering by address.
+ */
+// #define CONFIG_BT_NIMBLE_WHITELIST_DISABLED
+
 /**
  * @brief Un-comment to use memory pools for stack operations
  * @details this will use slightly more RAM but may provide more stability.
@@ -506,7 +513,7 @@ defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32S3)
 #endif
 #endif
 
-#ifndef CONFIG_BT_NIMBLE_WHITELIST_SIZE_DISABLED
+#ifndef CONFIG_BT_NIMBLE_WHITELIST_DISABLED
 #ifndef CONFIG_BT_NIMBLE_WHITELIST_SIZE
 #define CONFIG_BT_NIMBLE_WHITELIST_SIZE 12
 #endif

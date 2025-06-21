@@ -109,7 +109,9 @@ bool                       NimBLEDevice::m_initialized{false};
 uint32_t                   NimBLEDevice::m_passkey{123456};
 bool                       NimBLEDevice::m_synced{false};
 ble_gap_event_listener     NimBLEDevice::m_listener{};
+#if !defined(CONFIG_BT_NIMBLE_WHITELIST_DISABLED)
 std::vector<NimBLEAddress> NimBLEDevice::m_whiteList{};
+#endif
 uint8_t                    NimBLEDevice::m_ownAddrType{BLE_OWN_ADDR_PUBLIC};
 
 # ifdef ESP_PLATFORM
@@ -709,6 +711,7 @@ NimBLEAddress NimBLEDevice::getBondedAddress(int index) {
 /*                                  WHITELIST                                 */
 /* -------------------------------------------------------------------------- */
 
+#if !defined(CONFIG_BT_NIMBLE_WHITELIST_DISABLED)
 /**
  * @brief Checks if a peer device is whitelisted.
  * @param [in] address The address to check for in the whitelist.
@@ -787,6 +790,7 @@ NimBLEAddress NimBLEDevice::getWhiteListAddress(size_t index) {
 
     return m_whiteList[index];
 }
+#endif // !CONFIG_BT_NIMBLE_WHITELIST_DISABLED
 
 /* -------------------------------------------------------------------------- */
 /*                               STACK FUNCTIONS                              */

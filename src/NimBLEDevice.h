@@ -127,11 +127,13 @@ class NimBLEDevice {
     static bool          isInitialized();
     static NimBLEAddress getAddress();
     static std::string   toString();
+#if !defined(CONFIG_BT_NIMBLE_WHITELIST_DISABLED)
     static bool          whiteListAdd(const NimBLEAddress& address);
     static bool          whiteListRemove(const NimBLEAddress& address);
     static bool          onWhiteList(const NimBLEAddress& address);
     static size_t        getWhiteListCount();
     static NimBLEAddress getWhiteListAddress(size_t index);
+#endif
     static bool          setOwnAddrType(uint8_t type);
     static bool          setOwnAddr(const NimBLEAddress& addr);
     static bool          setOwnAddr(const uint8_t* addr);
@@ -221,7 +223,9 @@ class NimBLEDevice {
     static uint32_t                   m_passkey;
     static ble_gap_event_listener     m_listener;
     static uint8_t                    m_ownAddrType;
+#if !defined(CONFIG_BT_NIMBLE_WHITELIST_DISABLED)
     static std::vector<NimBLEAddress> m_whiteList;
+#endif
     static NimBLEDeviceCallbacks*     m_pDeviceCallbacks;
     static NimBLEDeviceCallbacks      defaultDeviceCallbacks;
 
