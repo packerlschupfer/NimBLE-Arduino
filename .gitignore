@@ -1,2 +1,22 @@
 docs/doxydocs
 .development
+
+# Claude Code temporary files
+.claude/
+
+# Build artifacts
+.pio/
+.vscode/
+*.pyc
+__pycache__/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE files
+*.code-workspace
+.idea/
