@@ -34,11 +34,11 @@
 High Priority:
 - [x] Store/persistence removal (CONFIG_BT_NIMBLE_STORE_CONFIG_DISABLED)
 - [x] Privacy/address resolution conditional compilation (CONFIG_BT_NIMBLE_HOST_PRIVACY_DISABLED)
-- [ ] Whitelist feature conditional compilation
+- [x] Whitelist feature conditional compilation (CONFIG_BT_NIMBLE_WHITELIST_DISABLED)
 - [ ] Buffer pool optimization for observer-only
 
 Medium Priority:
-- [ ] Enhanced ATT (EATT) conditional compilation
+- [x] Enhanced ATT (EATT) - already optimally configured (disabled by default)
 - [ ] Timer/scheduling optimization
 - [ ] Direct Test Mode (DTM) removal
 

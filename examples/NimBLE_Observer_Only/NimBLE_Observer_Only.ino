@@ -43,6 +43,9 @@
 // Disable privacy and address resolution features (~6-9KB)
 #define CONFIG_BT_NIMBLE_HOST_PRIVACY_DISABLED 1
 
+// Disable whitelist feature (~2-3KB)
+#define CONFIG_BT_NIMBLE_WHITELIST_DISABLED 1
+
 // Disable GATT procedures
 #define CONFIG_BT_NIMBLE_GATT_MAX_PROCS 0
 #define CONFIG_BT_NIMBLE_GATT_CACHING 0

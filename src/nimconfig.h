@@ -332,6 +332,13 @@
 #endif
 #endif
 
+/** @brief Disable whitelist feature for observer-only builds (~2-3KB) */
+#ifndef CONFIG_BT_NIMBLE_WHITELIST_DISABLED_DISABLED
+#ifndef CONFIG_BT_NIMBLE_WHITELIST_DISABLED
+/* #define CONFIG_BT_NIMBLE_WHITELIST_DISABLED 1 */
+#endif
+#endif
+
 /** @brief Allow legacy paring */
 #ifndef CONFIG_BT_NIMBLE_SM_LEGACY_DISABLED
 #ifndef CONFIG_BT_NIMBLE_SM_LEGACY

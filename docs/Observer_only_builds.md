@@ -20,7 +20,8 @@ With proper configuration, observer-only builds can save:
 - ~7KB by disabling L2CAP COC
 - ~4-6KB by disabling BLE store (CONFIG_BT_NIMBLE_STORE_CONFIG_DISABLED)
 - ~6-9KB by disabling privacy features (CONFIG_BT_NIMBLE_HOST_PRIVACY_DISABLED)
-- **Total potential savings: 45-55KB+ of flash memory**
+- ~2-3KB by disabling whitelist (CONFIG_BT_NIMBLE_WHITELIST_DISABLED)
+- **Total potential savings: 47-58KB+ of flash memory**
 
 ## Basic Configuration
 
@@ -59,6 +60,9 @@ For the smallest possible footprint, add these additional settings:
 
 // Disable privacy and address resolution features (saves ~6-9KB)
 #define CONFIG_BT_NIMBLE_HOST_PRIVACY_DISABLED 1
+
+// Disable whitelist feature (saves ~2-3KB)
+#define CONFIG_BT_NIMBLE_WHITELIST_DISABLED 1
 
 // Disable GATT procedures
 #define CONFIG_BT_NIMBLE_GATT_MAX_PROCS 0

@@ -36,20 +36,22 @@ Beyond the current observer-only support that saves ~42KB, an additional 35-50KB
 
 ## Medium Priority Optimizations (10-15KB)
 
-### 5. Whitelist/Filter Accept List (~2-3KB)
-- **Files**: `ble_gap.c` (whitelist functions)
-- **Recommendation**: Add `CONFIG_BT_NIMBLE_WHITELIST_DISABLED`
-- **Rationale**: Connection whitelists not needed for scanning
+### 5. Whitelist/Filter Accept List (~2-3KB) ✅ IMPLEMENTED
+- **Files**: `NimBLEDevice.cpp` (whitelist functions)
+- **Implementation**: Added `CONFIG_BT_NIMBLE_WHITELIST_DISABLED` option
+- **Usage**: Set `#define CONFIG_BT_NIMBLE_WHITELIST_DISABLED 1`
+- **Status**: Complete - removes whitelist functionality from C++ layer
 
 ### 6. Timer/Scheduling Features (~2-3KB)
 - **Various files**: Connection supervision timers, ATT timers
 - **Recommendation**: Conditionally compile timer initialization
 - **Rationale**: Connection-related timers unnecessary
 
-### 7. Enhanced ATT (EATT) (~3-4KB)
+### 7. Enhanced ATT (EATT) (~3-4KB) ✅ ALREADY OPTIMIZED
 - **Files**: `ble_eatt.c`
-- **Recommendation**: Wrap with `#if MYNEWT_VAL(BLE_EATT) && NIMBLE_BLE_CONNECT`
-- **Rationale**: Multiple ATT bearers only used with connections
+- **Status**: Already wrapped with `#if MYNEWT_VAL(BLE_EATT_CHAN_NUM) > 0`
+- **Default**: Set to 0 in nimconfig.h, so EATT is disabled by default
+- **Note**: No additional work needed - EATT code is excluded when channels = 0
 
 ### 8. Direct Test Mode (DTM) (~1-2KB)
 - **Files**: `ble_dtm.c`
