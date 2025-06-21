@@ -97,6 +97,9 @@ If defined, NimBLE Advertising functions will not be included.
 - Reduces flash size by approx. 5kB.  
 <br/>
 
+**Note:** For observer-only builds that maximize memory savings, see the [Observer-Only Builds Guide](Observer_only_builds.md).  
+<br/>
+
 `CONFIG_BT_NIMBLE_MAX_BONDS`  
 
 Sets the number of devices allowed to store/bond with  
