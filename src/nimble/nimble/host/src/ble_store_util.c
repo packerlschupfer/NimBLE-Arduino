@@ -17,6 +17,9 @@
  * under the License.
  */
 
+#include "syscfg/syscfg.h"
+#if !MYNEWT_VAL(BLE_STORE_CONFIG_DISABLED)
+
 #include "nimble/nimble/host/include/host/ble_store.h"
 #include "ble_hs_priv.h"
 #include "ble_hs_resolv_priv.h"
@@ -375,3 +378,5 @@ ble_store_util_status_rr(struct ble_store_status_event *event, void *arg)
         return BLE_HS_EUNKNOWN;
     }
 }
+
+#endif /* !MYNEWT_VAL(BLE_STORE_CONFIG_DISABLED) */

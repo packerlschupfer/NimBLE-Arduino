@@ -23,6 +23,9 @@
 
 #include "nimble/porting/nimble/include/sysinit/sysinit.h"
 #include "nimble/porting/nimble/include/syscfg/syscfg.h"
+
+#if !MYNEWT_VAL(BLE_STORE_CONFIG_DISABLED)
+
 #include "nimble/nimble/host/include/host/ble_hs.h"
 #include "nimble/nimble/host/store/config/include/store/config/ble_store_config.h"
 #include "ble_store_config_priv.h"
@@ -1182,3 +1185,5 @@ ble_store_config_init(void)
     ble_store_config_num_local_irks=0;
     ble_store_config_conf_init();
 }
+
+#endif /* !MYNEWT_VAL(BLE_STORE_CONFIG_DISABLED) */

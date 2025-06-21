@@ -19,6 +19,9 @@
 
 #include <string.h>
 
+#include "syscfg/syscfg.h"
+#if !MYNEWT_VAL(BLE_STORE_CONFIG_DISABLED)
+
 #include "nimble/nimble/host/include/host/ble_store.h"
 #include "ble_hs_priv.h"
 
@@ -633,3 +636,5 @@ ble_store_clear(void)
 
     return 0;
 }
+
+#endif /* !MYNEWT_VAL(BLE_STORE_CONFIG_DISABLED) */

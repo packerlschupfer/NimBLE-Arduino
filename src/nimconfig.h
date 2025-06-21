@@ -311,6 +311,13 @@
 #endif
 #endif
 
+/** @brief Completely disable the BLE store (persistence) for observer-only builds */
+#ifndef CONFIG_BT_NIMBLE_STORE_CONFIG_DISABLED_DISABLED
+#ifndef CONFIG_BT_NIMBLE_STORE_CONFIG_DISABLED
+/* #define CONFIG_BT_NIMBLE_STORE_CONFIG_DISABLED 1 */
+#endif
+#endif
+
 /** @brief Allow legacy paring */
 #ifndef CONFIG_BT_NIMBLE_SM_LEGACY_DISABLED
 #ifndef CONFIG_BT_NIMBLE_SM_LEGACY

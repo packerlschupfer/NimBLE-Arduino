@@ -52,6 +52,9 @@ For the smallest possible footprint, add these additional settings:
 #define CONFIG_BT_NIMBLE_MAX_CCCDS 0
 #define CONFIG_BT_NIMBLE_NVS_PERSIST 0
 
+// Completely disable the BLE store (saves ~4-6KB)
+#define CONFIG_BT_NIMBLE_STORE_CONFIG_DISABLED 1
+
 // Disable GATT procedures
 #define CONFIG_BT_NIMBLE_GATT_MAX_PROCS 0
 #define CONFIG_BT_NIMBLE_GATT_CACHING 0
