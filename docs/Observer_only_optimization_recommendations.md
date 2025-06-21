@@ -14,10 +14,11 @@ Beyond the current observer-only support that saves ~42KB, an additional 35-50KB
 - **Usage**: Set `#define CONFIG_BT_NIMBLE_STORE_CONFIG_DISABLED 1`
 - **Status**: Complete - stub implementations provided for all store functions
 
-### 2. Privacy and Address Resolution (~3-5KB)
+### 2. Privacy and Address Resolution (~3-5KB) ✅ IMPLEMENTED
 - **Files**: `ble_hs_pvcy.c`, `ble_hs_resolv.c`
-- **Recommendation**: Wrap with `#if MYNEWT_VAL(BLE_HOST_BASED_PRIVACY) && NIMBLE_BLE_CONNECT`
-- **Rationale**: RPA generation and resolution lists aren't needed for passive scanning
+- **Implementation**: Added `CONFIG_BT_NIMBLE_HOST_PRIVACY_DISABLED` option
+- **Usage**: Set `#define CONFIG_BT_NIMBLE_HOST_PRIVACY_DISABLED 1`
+- **Status**: Complete - stub implementations provided, basic RPA detection preserved
 
 ### 3. Buffer Pool Optimization (~4-8KB)
 - **Configuration**: Reduce memory pool allocations

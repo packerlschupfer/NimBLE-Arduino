@@ -33,7 +33,7 @@
 ## Current Optimization Efforts
 High Priority:
 - [x] Store/persistence removal (CONFIG_BT_NIMBLE_STORE_CONFIG_DISABLED)
-- [ ] Privacy/address resolution conditional compilation
+- [x] Privacy/address resolution conditional compilation (CONFIG_BT_NIMBLE_HOST_PRIVACY_DISABLED)
 - [ ] Whitelist feature conditional compilation
 - [ ] Buffer pool optimization for observer-only
 

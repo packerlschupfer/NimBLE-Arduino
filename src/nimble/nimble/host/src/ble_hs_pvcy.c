@@ -19,6 +19,10 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "syscfg/syscfg.h"
+#if !MYNEWT_VAL(BLE_HOST_PRIVACY_DISABLED)
+
 #include "nimble/porting/nimble/include/stats/stats.h"
 #include "ble_hs_priv.h"
 #include "ble_hs_resolv_priv.h"
@@ -403,3 +407,5 @@ ble_hs_pvcy_rpa_config(uint8_t enable)
     return rc;
 }
 #endif
+
+#endif /* !MYNEWT_VAL(BLE_HOST_PRIVACY_DISABLED) */

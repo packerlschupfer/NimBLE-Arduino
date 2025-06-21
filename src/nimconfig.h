@@ -318,6 +318,13 @@
 #endif
 #endif
 
+/** @brief Disable privacy and address resolution features for observer-only builds (~6-9KB) */
+#ifndef CONFIG_BT_NIMBLE_HOST_PRIVACY_DISABLED_DISABLED
+#ifndef CONFIG_BT_NIMBLE_HOST_PRIVACY_DISABLED
+/* #define CONFIG_BT_NIMBLE_HOST_PRIVACY_DISABLED 1 */
+#endif
+#endif
+
 /** @brief Allow legacy paring */
 #ifndef CONFIG_BT_NIMBLE_SM_LEGACY_DISABLED
 #ifndef CONFIG_BT_NIMBLE_SM_LEGACY
