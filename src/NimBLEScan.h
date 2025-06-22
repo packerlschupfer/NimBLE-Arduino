@@ -91,6 +91,7 @@ class NimBLEScan {
 
   private:
     friend class NimBLEDevice;
+    friend class NimBLEObserverOnly;
 
     NimBLEScan();
     ~NimBLEScan();

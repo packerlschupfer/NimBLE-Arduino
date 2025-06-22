@@ -2,18 +2,23 @@
  * NimBLE Observer-Only Implementation
  */
 
+#include "nimconfig.h"
+
+#if defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY)
+
 #include "NimBLEObserverOnly.h"
 #include "NimBLELog.h"
 
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
-#include "host/ble_hs.h"
-#include "host/ble_hs_pvcy.h"
-#include "host/util/util.h"
-#include "services/gap/ble_svc_gap.h"
+#include "nimble/porting/nimble/include/nimble/nimble_port.h"
+#include "nimble/porting/npl/freertos/include/nimble/nimble_port_freertos.h"
+#include "nimble/nimble/host/include/host/ble_hs.h"
+#include "nimble/nimble/host/include/host/ble_hs_pvcy.h"
+#include "nimble/nimble/host/util/include/host/util/util.h"
+#include "nimble/nimble/host/services/gap/include/services/gap/ble_svc_gap.h"
 
 #include <esp_bt.h>
 #include <esp_bt_main.h>
+#include "nimble/esp_port/esp-hci/include/esp_nimble_hci.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -151,7 +156,9 @@ NimBLEAddress NimBLEObserverOnly::getAddress() {
     ble_addr_t addr{};
     
     if (m_initialized) {
-        int rc = ble_hs_id_copy_addr(BLE_OWN_ADDR_PUBLIC, addr.val, &addr.type);
+        int is_nrpa;
+        int rc = ble_hs_id_copy_addr(BLE_OWN_ADDR_PUBLIC, addr.val, &is_nrpa);
+        addr.type = BLE_OWN_ADDR_PUBLIC;
         if (rc != 0) {
             NIMBLE_LOGE(LOG_TAG, "Failed to get address: %d", rc);
         }
@@ -165,7 +172,9 @@ NimBLEAddress NimBLEObserverOnly::getAddress() {
  */
 void NimBLEObserverOnly::setScanDuplicateCacheSize(uint16_t size) {
 #ifdef ESP_PLATFORM
-    NimBLEDevice::setScanDuplicateCacheSize(size);
+    // In observer-only mode, these settings are handled at controller init
+    // The controller config in init() already sets scan_duplicate_type
+    NIMBLE_LOGW(LOG_TAG, "Scan duplicate cache size should be set before init()");
 #endif
 }
 
@@ -174,7 +183,9 @@ void NimBLEObserverOnly::setScanDuplicateCacheSize(uint16_t size) {
  */
 void NimBLEObserverOnly::setScanFilterMode(uint8_t mode) {
 #ifdef ESP_PLATFORM
-    NimBLEDevice::setScanFilterMode(mode);
+    // In observer-only mode, these settings are handled at controller init
+    // The controller config in init() already sets scan_duplicate_type
+    NIMBLE_LOGW(LOG_TAG, "Scan filter mode should be set before init()");
 #endif
 }
 
@@ -212,3 +223,5 @@ void NimBLEObserverOnly::onReset(int reason) {
     NIMBLE_LOGE(LOG_TAG, "Host reset: %d", reason);
     m_initialized = false;
 }
+
+#endif // CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
