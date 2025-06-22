@@ -13,6 +13,14 @@
      defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL_DISABLED) && \
      defined(CONFIG_BT_NIMBLE_ROLE_BROADCASTER_DISABLED))
 
+#include "host/ble_hs.h"
+#include "host/ble_gap.h"
+#include "host/ble_gatt.h"
+#include "host/ble_att.h"
+#include "host/ble_l2cap.h"
+#include "host/ble_store.h"
+#include "host/ble_uuid.h"
+
 extern "C" {
 
 // GATT Client stubs - prevent linking full GATT client code

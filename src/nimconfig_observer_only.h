@@ -106,27 +106,53 @@
 #define CONFIG_BT_NIMBLE_TRANSPORT_EVT_COUNT 4
 
 // Disable flow control
+#ifndef MYNEWT_VAL_BLE_HS_FLOW_CTRL
 #define MYNEWT_VAL_BLE_HS_FLOW_CTRL 0
+#endif
+#ifndef MYNEWT_VAL_BLE_HS_FLOW_CTRL_ITVL
 #define MYNEWT_VAL_BLE_HS_FLOW_CTRL_ITVL 0
+#endif
+#ifndef MYNEWT_VAL_BLE_HS_FLOW_CTRL_THRESH
 #define MYNEWT_VAL_BLE_HS_FLOW_CTRL_THRESH 0
+#endif
+#ifndef MYNEWT_VAL_BLE_HS_FLOW_CTRL_TX_ON_DISCONNECT
 #define MYNEWT_VAL_BLE_HS_FLOW_CTRL_TX_ON_DISCONNECT 0
+#endif
 
 // Disable PHY support
+#ifndef MYNEWT_VAL_BLE_LL_CFG_FEAT_LE_2M_PHY
 #define MYNEWT_VAL_BLE_LL_CFG_FEAT_LE_2M_PHY 0
+#endif
+#ifndef MYNEWT_VAL_BLE_LL_CFG_FEAT_LE_CODED_PHY
 #define MYNEWT_VAL_BLE_LL_CFG_FEAT_LE_CODED_PHY 0
+#endif
 
 // Disable connection parameter request
+#ifndef MYNEWT_VAL_BLE_LL_CFG_FEAT_CONN_PARAM_REQ
 #define MYNEWT_VAL_BLE_LL_CFG_FEAT_CONN_PARAM_REQ 0
+#endif
 
 // Disable unused features
+#ifndef MYNEWT_VAL_BLE_MONITOR
 #define MYNEWT_VAL_BLE_MONITOR 0
+#endif
+#ifndef MYNEWT_VAL_BLE_LL_DTM
 #define MYNEWT_VAL_BLE_LL_DTM 0
+#endif
+#ifndef MYNEWT_VAL_BLE_LL_DTM_UART_BAUD
 #define MYNEWT_VAL_BLE_LL_DTM_UART_BAUD 0
+#endif
+#ifndef MYNEWT_VAL_BLE_LL_DTM_UART_PORT
 #define MYNEWT_VAL_BLE_LL_DTM_UART_PORT 0
+#endif
 
 // Minimal HCI command/event support
+#ifndef MYNEWT_VAL_BLE_LL_NUM_COMP_PKT_RATE
 #define MYNEWT_VAL_BLE_LL_NUM_COMP_PKT_RATE 0
+#endif
+#ifndef MYNEWT_VAL_BLE_LL_CONN_INIT_SLOTS
 #define MYNEWT_VAL_BLE_LL_CONN_INIT_SLOTS 0
+#endif
 
 // Include base nimconfig for any remaining settings
 #include "nimconfig.h"
