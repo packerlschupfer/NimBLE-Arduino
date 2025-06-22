@@ -13,6 +13,10 @@
 - Conditional compilation for L2CAP to support observer-only builds
 - Encryption stub for builds without Security Manager
 - Error code availability fixes for observer-only compilation
+- **NEW**: Minimal observer API (NimBLEObserverOnly) for 200-400KB additional savings
+- **NEW**: Stub implementations to prevent linking unused subsystems
+- **NEW**: PlatformIO build script for automatic source exclusion
+- **NEW**: Aggressive configuration header for maximum optimization
 
 ## Code Standards
 - Follow existing NimBLE coding conventions

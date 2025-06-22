@@ -2,6 +2,14 @@
 
 This guide explains how to configure NimBLE-Arduino for observer-only (scanner-only) builds, which provide significant memory savings for applications that only need passive BLE scanning capabilities.
 
+## Two Approaches
+
+### 1. Configuration-Based (Moderate Savings: ~47-58KB)
+Use configuration defines with standard NimBLEDevice initialization.
+
+### 2. Minimal API (Maximum Savings: 200-400KB)
+Use the new NimBLEObserverOnly interface for absolute minimal footprint.
+
 ## Overview
 
 Observer-only builds disable all BLE features except passive scanning, making them ideal for:
@@ -158,9 +166,52 @@ To migrate an existing application to observer-only:
 
 1. Remove all connection-related code
 2. Remove GATT client/server operations
-3. Add the configuration defines above
+3. Choose your approach:
+   - **For moderate savings**: Add configuration defines and continue using NimBLEDevice
+   - **For maximum savings**: Switch to NimBLEObserverOnly API
 4. Test thoroughly to ensure scanning still works as expected
 5. Measure memory savings to verify optimization
+
+## Using the Minimal API (NimBLEObserverOnly)
+
+For maximum flash savings (200-400KB):
+
+```cpp
+#include "nimconfig_observer_only.h"
+#include "NimBLEObserverOnly.h"
+
+void setup() {
+    // Initialize observer-only mode
+    NimBLEObserverOnly::init();
+    
+    // Get scanner
+    NimBLEScan* pScan = NimBLEObserverOnly::getScan();
+    
+    // Configure and start scanning
+    pScan->setActiveScan(false);
+    pScan->start(0); // 0 = continuous
+}
+```
+
+### PlatformIO Configuration for Minimal Build
+
+```ini
+[env:esp32_observer_minimal]
+platform = espressif32
+board = esp32dev
+framework = arduino
+lib_deps = NimBLE-Arduino
+build_flags = 
+    -DCONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    -Wl,--gc-sections
+    -ffunction-sections
+    -fdata-sections
+```
+
+The build system will automatically detect `CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY` and:
+- Exclude ~140 unnecessary source files
+- Apply aggressive optimization flags
+- Link only scanning-related code
 
 ## Future Enhancements
 
