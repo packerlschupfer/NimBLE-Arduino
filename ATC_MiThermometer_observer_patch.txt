@@ -1,0 +1,90 @@
+# Quick Patch for ATC_MiThermometer Library to Support Observer-Only Mode
+
+## Step 1: Add this at the top of your main header/source files:
+
+```cpp
+// Add after other includes
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    #include "NimBLEObserverOnly.h"
+    #define BLE_DEVICE_CLASS NimBLEObserverOnly
+#else
+    #include <NimBLEDevice.h>
+    #define BLE_DEVICE_CLASS NimBLEDevice
+#endif
+```
+
+## Step 2: Replace all NimBLEDevice:: calls with BLE_DEVICE_CLASS::
+
+Examples:
+- `NimBLEDevice::init()` → `BLE_DEVICE_CLASS::init()`
+- `NimBLEDevice::getScan()` → `BLE_DEVICE_CLASS::getScan()`
+- `NimBLEDevice::isInitialized()` → `BLE_DEVICE_CLASS::isInitialized()`
+
+## Step 3: Wrap whitelist functions in conditional compilation:
+
+```cpp
+#ifndef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    // Whitelist functions only work in full mode
+    if (NimBLEDevice::getWhiteListCount() < max) {
+        NimBLEDevice::whiteListAdd(address);
+    }
+#endif
+```
+
+## Step 4: Alternative - Minimal Changes
+
+If you want minimal changes, just add this guard at the top of files using NimBLE:
+
+```cpp
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    #error "ATC_MiThermometer library does not yet support NimBLE observer-only mode. Please use standard mode."
+#endif
+```
+
+This will at least give users a clear error message instead of cryptic linker errors.
+
+## Example Complete Function Update:
+
+### Before:
+```cpp
+bool initBLE() {
+    if (!NimBLEDevice::isInitialized()) {
+        NimBLEDevice::init("ATC_Scanner");
+    }
+    
+    pBLEScan = NimBLEDevice::getScan();
+    pBLEScan->setActiveScan(false);
+    
+    // Add known devices to whitelist
+    for (auto& addr : knownDevices) {
+        NimBLEDevice::whiteListAdd(addr);
+    }
+    
+    return true;
+}
+```
+
+### After:
+```cpp
+bool initBLE() {
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    if (!NimBLEObserverOnly::isInitialized()) {
+        NimBLEObserverOnly::init("ATC_Scanner");
+    }
+    pBLEScan = NimBLEObserverOnly::getScan();
+#else
+    if (!NimBLEDevice::isInitialized()) {
+        NimBLEDevice::init("ATC_Scanner");
+    }
+    pBLEScan = NimBLEDevice::getScan();
+    
+    // Whitelist only available in full mode
+    for (auto& addr : knownDevices) {
+        NimBLEDevice::whiteListAdd(addr);
+    }
+#endif
+    
+    pBLEScan->setActiveScan(false);
+    return true;
+}
+```
