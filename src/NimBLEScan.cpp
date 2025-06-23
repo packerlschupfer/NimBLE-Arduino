@@ -87,7 +87,7 @@ int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
 # endif
             NimBLEAddress advertisedAddress(disc.addr);
 
-# ifdef CONFIG_BT_NIMBLE_ROLE_CENTRAL
+# if defined(CONFIG_BT_NIMBLE_ROLE_CENTRAL) && CONFIG_BT_NIMBLE_ROLE_CENTRAL
             // stop processing if already connected
             NimBLEClient* pClient = NimBLEDevice::getClientByPeerAddress(advertisedAddress);
             if (pClient != nullptr && pClient->isConnected()) {
