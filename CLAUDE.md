@@ -39,6 +39,7 @@ High Priority:
 - [x] Store/persistence removal (CONFIG_BT_NIMBLE_STORE_CONFIG_DISABLED)
 - [x] Privacy/address resolution conditional compilation (CONFIG_BT_NIMBLE_HOST_PRIVACY_DISABLED)
 - [x] Whitelist feature conditional compilation (CONFIG_BT_NIMBLE_WHITELIST_DISABLED)
+- [x] Observer-only build fixes (feature/observer-core-optimization branch)
 - [ ] Buffer pool optimization for observer-only
 
 Medium Priority:

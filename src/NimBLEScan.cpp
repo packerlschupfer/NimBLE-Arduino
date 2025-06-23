@@ -19,7 +19,11 @@
 #if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER)
 
 # include "NimBLEScan.h"
-# include "NimBLEDevice.h"
+# ifndef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+#  include "NimBLEDevice.h"
+# else
+#  include "NimBLEObserverOnly.h"
+# endif
 # include "NimBLELog.h"
 
 # include <string>
@@ -51,8 +55,12 @@ NimBLEScan::~NimBLEScan() {
  * @param [in] param Parameter data for this event.
  */
 int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    NimBLEScan* pScan = static_cast<NimBLEScan*>(arg);
+#else
     (void)arg;
     NimBLEScan* pScan = NimBLEDevice::getScan();
+#endif
     
     // CRITICAL FIX: Capture timestamps IMMEDIATELY on entry
     time_t currentTime = time(nullptr);
@@ -385,7 +393,11 @@ bool NimBLEScan::start(uint32_t duration, bool isContinue, bool restart) {
     scan_params.passive = m_scanParams.passive;
     scan_params.itvl    = m_scanParams.itvl;
     scan_params.window  = m_scanParams.window;
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    int rc              = ble_gap_ext_disc(BLE_OWN_ADDR_PUBLIC,
+#else
     int rc              = ble_gap_ext_disc(NimBLEDevice::m_ownAddrType,
+#endif
                               duration / 10, // 10ms units
                               m_period,
                               m_scanParams.filter_duplicates,
@@ -394,13 +406,25 @@ bool NimBLEScan::start(uint32_t duration, bool isContinue, bool restart) {
                               m_phy & SCAN_1M ? &scan_params : NULL,
                               m_phy & SCAN_CODED ? &scan_params : NULL,
                               NimBLEScan::handleGapEvent,
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+                              this);
+#else
                               NULL);
+#endif
 # else
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    int rc = ble_gap_disc(BLE_OWN_ADDR_PUBLIC,
+#else
     int rc = ble_gap_disc(NimBLEDevice::m_ownAddrType,
+#endif
                           duration ? duration : BLE_HS_FOREVER,
                           &m_scanParams,
                           NimBLEScan::handleGapEvent,
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+                          this);
+#else
                           NULL);
+#endif
 # endif
     switch (rc) {
         case 0:
