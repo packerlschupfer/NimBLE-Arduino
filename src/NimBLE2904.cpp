@@ -16,7 +16,7 @@
  */
 
 #include "nimconfig.h"
-#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
+#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL) && !defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY)
 
 # include "NimBLE2904.h"
 
@@ -71,4 +71,4 @@ void NimBLE2904::setUnit(uint16_t unit) {
     setValue(m_data);
 } // setUnit
 
-#endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_PERIPHERAL */
+#endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_PERIPHERAL && !CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY */

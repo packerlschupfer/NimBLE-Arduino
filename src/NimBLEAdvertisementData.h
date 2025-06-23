@@ -19,7 +19,7 @@
 #define NIMBLE_CPP_ADVERTISEMENT_DATA_H_
 
 #include "nimconfig.h"
-#if (defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_BROADCASTER) && !CONFIG_BT_NIMBLE_EXT_ADV) || \
+#if (defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_BROADCASTER) && !CONFIG_BT_NIMBLE_EXT_ADV && !defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY)) || \
     defined(_DOXYGEN_)
 
 # include <cstdint>
@@ -75,5 +75,5 @@ class NimBLEAdvertisementData {
     std::vector<uint8_t> m_payload{};
 }; // NimBLEAdvertisementData
 
-#endif // CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_BROADCASTER && !CONFIG_BT_NIMBLE_EXT_ADV
+#endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_BROADCASTER && !CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY */
 #endif // NIMBLE_CPP_ADVERTISEMENT_DATA_H_

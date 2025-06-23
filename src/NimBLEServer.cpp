@@ -16,7 +16,7 @@
  */
 
 #include "nimconfig.h"
-#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
+#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL) && !defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY)
 
 # include "NimBLEServer.h"
 # include "NimBLEDevice.h"
@@ -1019,4 +1019,4 @@ void NimBLEServerCallbacks::onPhyUpdate(NimBLEConnInfo& connInfo, uint8_t txPhy,
     NIMBLE_LOGD("NimBLEServerCallbacks", "onPhyUpdate: default, txPhy: %d, rxPhy: %d", txPhy, rxPhy);
 } // onPhyUpdate
 
-#endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_PERIPHERAL */
+#endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_PERIPHERAL && !CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY */

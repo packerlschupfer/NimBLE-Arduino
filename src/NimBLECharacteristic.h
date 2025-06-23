@@ -18,7 +18,7 @@
 #ifndef NIMBLE_CPP_CHARACTERISTIC_H_
 #define NIMBLE_CPP_CHARACTERISTIC_H_
 #include "nimconfig.h"
-#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
+#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL) && !defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY)
 
 class NimBLECharacteristicCallbacks;
 class NimBLEService;
@@ -253,5 +253,5 @@ class NimBLECharacteristicCallbacks {
     virtual void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue);
 };
 
-#endif /* CONFIG_BT_ENABLED  && CONFIG_BT_NIMBLE_ROLE_PERIPHERAL */
+#endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_PERIPHERAL && !CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY */
 #endif /*NIMBLE_CPP_CHARACTERISTIC_H_*/

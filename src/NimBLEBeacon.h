@@ -19,7 +19,7 @@
 #define NIMBLE_CPP_BEACON_H_
 
 #include "nimconfig.h"
-#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_BROADCASTER)
+#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_BROADCASTER) && !defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY)
 
 class NimBLEUUID;
 

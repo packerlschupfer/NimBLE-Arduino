@@ -16,7 +16,7 @@
  */
 
 #include "nimconfig.h"
-#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_BROADCASTER)
+#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_BROADCASTER) && !defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY)
 
 # include "NimBLEEddystoneTLM.h"
 # include "NimBLEUUID.h"
@@ -216,4 +216,4 @@ void NimBLEEddystoneTLM::setTime(uint32_t tmil) {
     m_eddystoneData.tmil = tmil;
 } // setTime
 
-#endif // CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_BROADCASTER
+#endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_BROADCASTER && !CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY */

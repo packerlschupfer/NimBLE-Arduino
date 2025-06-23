@@ -16,7 +16,7 @@
  */
 
 #include "nimconfig.h"
-#if (defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_BROADCASTER) && !CONFIG_BT_NIMBLE_EXT_ADV) || \
+#if (defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_BROADCASTER) && !CONFIG_BT_NIMBLE_EXT_ADV && !defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY)) || \
     defined(_DOXYGEN_)
 
 # if defined(CONFIG_NIMBLE_CPP_IDF)
@@ -622,4 +622,4 @@ bool NimBLEAdvertising::setServiceData(const NimBLEUUID& uuid, const std::string
     return setServiceData(uuid, reinterpret_cast<const uint8_t*>(data.data()), data.length());
 } // setServiceData
 
-#endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_BROADCASTER  && !CONFIG_BT_NIMBLE_EXT_ADV */
+#endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_BROADCASTER && !CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY */

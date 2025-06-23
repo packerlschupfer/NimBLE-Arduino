@@ -19,7 +19,7 @@
 #define NIMBLE_CPP_DESCRIPTOR_H_
 
 #include "nimconfig.h"
-#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
+#if defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL) && !defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY)
 
 # include "NimBLELocalValueAttribute.h"
 # include <string>
@@ -72,5 +72,5 @@ class NimBLEDescriptorCallbacks {
 
 # include "NimBLE2904.h"
 
-#endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_PERIPHERAL */
+#endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_PERIPHERAL && !CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY */
 #endif /* NIMBLE_CPP_DESCRIPTOR_H_ */

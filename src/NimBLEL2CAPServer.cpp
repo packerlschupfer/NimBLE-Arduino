@@ -3,7 +3,7 @@
 //
 #include "nimconfig.h"
 
-#if CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)
+#if (CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || defined(CONFIG_BT_NIMBLE_ROLE_PERIPHERAL)) && !defined(CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY)
 
 #include "NimBLEL2CAPServer.h"
 #include "NimBLEL2CAPChannel.h"
@@ -38,4 +38,4 @@ NimBLEL2CAPChannel* NimBLEL2CAPServer::createService(const uint16_t             
     return service;
 }
 
-#endif /* CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || CONFIG_BT_NIMBLE_ROLE_PERIPHERAL */
+#endif /* (CONFIG_BT_NIMBLE_L2CAP_COC_MAX_NUM > 0 || CONFIG_BT_NIMBLE_ROLE_PERIPHERAL) && !CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY */
