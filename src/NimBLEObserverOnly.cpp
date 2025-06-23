@@ -34,6 +34,10 @@ NimBLEScan* NimBLEObserverOnly::m_pScan = nullptr;
 bool NimBLEObserverOnly::init(const std::string& deviceName) {
     if (m_initialized) {
         NIMBLE_LOGW(LOG_TAG, "Already initialized");
+        // Ensure scan object exists even if already initialized
+        if (m_pScan == nullptr) {
+            m_pScan = new NimBLEScan();
+        }
         return true;
     }
 
@@ -90,6 +94,16 @@ bool NimBLEObserverOnly::init(const std::string& deviceName) {
         return false;
     }
     
+    // Create the scan object now that we're initialized
+    if (m_pScan == nullptr) {
+        m_pScan = new NimBLEScan();
+        if (m_pScan == nullptr) {
+            NIMBLE_LOGE(LOG_TAG, "Failed to create scan object");
+            deinit();
+            return false;
+        }
+    }
+    
     NIMBLE_LOGI(LOG_TAG, "Observer-only mode initialized");
     return true;
 }
@@ -131,12 +145,16 @@ bool NimBLEObserverOnly::deinit() {
  */
 NimBLEScan* NimBLEObserverOnly::getScan() {
     if (!m_initialized) {
-        NIMBLE_LOGE(LOG_TAG, "Not initialized");
+        NIMBLE_LOGE(LOG_TAG, "Not initialized - call NimBLEObserverOnly::init() first");
         return nullptr;
     }
     
     if (m_pScan == nullptr) {
+        NIMBLE_LOGW(LOG_TAG, "Scan object was null, creating new instance");
         m_pScan = new NimBLEScan();
+        if (m_pScan == nullptr) {
+            NIMBLE_LOGE(LOG_TAG, "Failed to create scan object - out of memory?");
+        }
     }
     
     return m_pScan;
