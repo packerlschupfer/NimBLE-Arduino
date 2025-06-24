@@ -14,6 +14,9 @@
 
 // In observer-only mode, redirect to NimBLEObserverOnly
 #include "NimBLEObserverOnly.h"
+#include "NimBLEScan.h"
+#include "NimBLEAdvertisedDevice.h"
+#include "NimBLEAddress.h"
 
 // Provide a minimal NimBLEDevice class that forwards to NimBLEObserverOnly
 class NimBLEDevice {
@@ -57,7 +60,10 @@ public:
     }
 };
 
-#endif
-// In normal mode, the real NimBLEDevice.h will be included separately
+#else
+// In normal mode, include the real NimBLEDevice
+#include "NimBLEDevice.h"
+
+#endif // CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
 
 #endif // NIMBLE_DEVICE_COMPAT_H
