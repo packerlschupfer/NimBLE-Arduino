@@ -19,7 +19,8 @@ int deviceCount = 0;
 
 // Custom scan callbacks
 class MyScanCallbacks : public NimBLEScanCallbacks {
-    void onResult(NimBLEAdvertisedDevice* advertisedDevice) {
+public:
+    void onResult(const NimBLEAdvertisedDevice* advertisedDevice) override {
         deviceCount++;
         Serial.printf("Device %d: %s, RSSI: %d\n",
             deviceCount,
