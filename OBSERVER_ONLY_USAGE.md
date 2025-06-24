@@ -38,9 +38,9 @@ Always test your library with:
 
 ## For End Users
 
-### Simple Setup
+### Local Development Setup
 
-In your `platformio.ini`:
+When using local git repositories with observer-only optimizations:
 
 ```ini
 [env:esp32_observer]
@@ -49,30 +49,38 @@ board = esp32dev
 framework = arduino
 
 lib_deps = 
-    ; Use the observer-optimized branch
-    h2zero/NimBLE-Arduino@^2.2.3
-    ; Your BLE libraries
-    matthias-bs/ATC_MiThermometer@^latest
+    ; IMPORTANT: Order matters! Logger must be first if using custom logging
+    ; git+file:///home/mrnice/Documents/PlatformIO/libs/workspace_Class-Logger#remove_esp_log_redirect
+    
+    ; NimBLE-Arduino with observer-only optimizations (our local fork)
+    git+file:///home/mrnice/Documents/PlatformIO/libs/workspace_Class-NimBLE-Arduino#feature/observer-core-optimization
+    
+    ; ATC_MiThermometer library with observer-only support
+    git+file:///home/mrnice/Documents/PlatformIO/libs/workspace_Class-ATC_MiThermometer#feature/replace-logging-macro
 
 build_flags = 
     -D CONFIG_BT_ENABLED=1
     -D CONFIG_BT_NIMBLE_ENABLED=1
     ; Enable observer-only mode
     -D CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY=1
+    ; Include the observer config from library location
+    -include "${PROJECT_DIR}/.pio/libdeps/${PIOENV}/NimBLE-Arduino/src/nimconfig_observer_only.h"
 ```
 
-### Advanced Setup with Direct Repository
+**Note**: The ATC_MiThermometer example's platformio.ini needs to be updated to use our local NimBLE-Arduino fork instead of the upstream version for observer-only mode to work correctly.
+
+### Alternative: Direct Symlink (for active development)
 
 ```ini
 lib_deps = 
-    ; Direct from repository with specific branch
-    git+https://github.com/h2zero/NimBLE-Arduino#feature/observer-core-optimization
-    git+https://github.com/matthias-bs/ATC_MiThermometer#main
+    ; Direct symlinks for faster development iteration
+    NimBLE-Arduino=symlink:///home/mrnice/Documents/PlatformIO/libs/workspace_Class-NimBLE-Arduino
+    ATC_MiThermometer=symlink:///home/mrnice/Documents/PlatformIO/libs/workspace_Class-ATC_MiThermometer
+    ; Optional logger
+    Logger=symlink:///home/mrnice/Documents/PlatformIO/libs/workspace_Class-Logger
 
 build_flags = 
     ${base_observer.build_flags}
-    ; Include the observer config from library location
-    -include "${PROJECT_DIR}/.pio/libdeps/${PIOENV}/NimBLE-Arduino/src/nimconfig_observer_only.h"
 ```
 
 ## Memory Savings
