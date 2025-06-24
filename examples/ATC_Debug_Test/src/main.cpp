@@ -26,7 +26,7 @@ class DebugCallbacks : public NimBLEScanCallbacks {
             
             // Check for service data (ATC sensors advertise with UUID 0x181a)
             if (advertisedDevice->haveServiceData()) {
-                std::string svcData = advertisedDevice->getServiceData(BLEUUID((uint16_t)0x181a));
+                std::string svcData = advertisedDevice->getServiceData(NimBLEUUID((uint16_t)0x181a));
                 if (svcData.length() >= 13) {  // ATC PVVX format
                     // Parse temperature and humidity
                     int16_t temp = (svcData[6] | (svcData[7] << 8));
@@ -64,7 +64,7 @@ void setup() {
     // Configure whitelist
     Serial.println("\nConfiguring hardware whitelist...");
     NimBLEObserverOnly::whiteListClear();
-    NimBLEAddress targetAddr(TARGET_MAC);
+    NimBLEAddress targetAddr(TARGET_MAC, BLE_ADDR_PUBLIC);
     
     if (NimBLEObserverOnly::whiteListAdd(targetAddr)) {
         Serial.printf("Added %s to whitelist\n", TARGET_MAC);
