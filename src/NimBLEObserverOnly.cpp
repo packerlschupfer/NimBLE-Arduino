@@ -486,6 +486,9 @@ bool NimBLEObserverOnly::onWhiteList(const NimBLEAddress& address) {
  * @return The number of addresses in the whitelist
  */
 size_t NimBLEObserverOnly::whiteListSize() {
+    if (!m_initialized) {
+        return 0;
+    }
     return m_whiteList.size();
 }
 
@@ -495,11 +498,11 @@ size_t NimBLEObserverOnly::whiteListSize() {
  * @return The address at the specified index, or an invalid address if out of bounds
  */
 NimBLEAddress NimBLEObserverOnly::getWhiteListAddress(size_t index) {
-    if (index < m_whiteList.size()) {
-        return m_whiteList[index];
+    if (!m_initialized || index >= m_whiteList.size()) {
+        // Return an invalid address if not initialized or index is out of bounds
+        return NimBLEAddress();
     }
-    // Return an invalid address if index is out of bounds
-    return NimBLEAddress();
+    return m_whiteList[index];
 }
 
 #endif // CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
