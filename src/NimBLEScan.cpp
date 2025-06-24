@@ -32,6 +32,11 @@
 static const char*         LOG_TAG = "NimBLEScan";
 static NimBLEScanCallbacks defaultScanCallbacks;
 
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+// Global scan instance for observer-only mode
+static NimBLEScan* g_observerScan = nullptr;
+#endif
+
 /**
  * @brief Scan constructor.
  */
@@ -40,13 +45,23 @@ NimBLEScan::NimBLEScan()
       // default interval + window, no whitelist scan filter,not limited scan, no scan response, filter_duplicates
       m_scanParams{0, 0, BLE_HCI_SCAN_FILT_NO_WL, 0, 1, 1},
       m_pTaskData{nullptr},
-      m_maxResults{0xFF} {}
+      m_maxResults{0xFF} {
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    // In observer-only mode, we need a global reference
+    g_observerScan = this;
+#endif
+}
 
 /**
  * @brief Scan destructor, release any allocated resources.
  */
 NimBLEScan::~NimBLEScan() {
     clearResults();
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    if (g_observerScan == this) {
+        g_observerScan = nullptr;
+    }
+#endif
 }
 
 /**
@@ -56,10 +71,10 @@ NimBLEScan::~NimBLEScan() {
  */
 int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
 #ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
-    NIMBLE_LOGD(LOG_TAG, "handleGapEvent called: type=%d, arg=%p", event->type, arg);
-    NimBLEScan* pScan = static_cast<NimBLEScan*>(arg);
+    // In observer-only mode, use the global scan instance
+    NimBLEScan* pScan = g_observerScan;
     if (pScan == nullptr) {
-        NIMBLE_LOGE(LOG_TAG, "CRITICAL: pScan is null in handleGapEvent!");
+        NIMBLE_LOGE(LOG_TAG, "Observer scan instance is null");
         return 0;
     }
 #else
@@ -414,16 +429,9 @@ bool NimBLEScan::start(uint32_t duration, bool isContinue, bool restart) {
                               m_phy & SCAN_1M ? &scan_params : NULL,
                               m_phy & SCAN_CODED ? &scan_params : NULL,
                               NimBLEScan::handleGapEvent,
-#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
-                              this);
-#else
-                              NULL);
-#endif
+                              NULL);  // Always use NULL, rely on global instance in observer-only mode
 # else
 #ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
-    NIMBLE_LOGI(LOG_TAG, "Calling ble_gap_disc with: addr_type=%d, duration=%d, passive=%d, filter=%d",
-                BLE_OWN_ADDR_PUBLIC, duration ? duration : BLE_HS_FOREVER, 
-                m_scanParams.passive, m_scanParams.filter_policy);
     int rc = ble_gap_disc(BLE_OWN_ADDR_PUBLIC,
 #else
     int rc = ble_gap_disc(NimBLEDevice::m_ownAddrType,
@@ -431,11 +439,7 @@ bool NimBLEScan::start(uint32_t duration, bool isContinue, bool restart) {
                           duration ? duration : BLE_HS_FOREVER,
                           &m_scanParams,
                           NimBLEScan::handleGapEvent,
-#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
-                          this);
-#else
-                          NULL);
-#endif
+                          NULL);  // Always use NULL, rely on global instance in observer-only mode
 # endif
     switch (rc) {
         case 0:

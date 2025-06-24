@@ -6,15 +6,17 @@ This example demonstrates NimBLE-Arduino's observer-only mode with hardware whit
 
 - Observer-only mode (~200-400KB flash savings)
 - Hardware whitelist filtering
-- Initialization order testing
+- Proper BLE initialization timing
+- Two-phase scanning (open vs whitelist)
 - Real BLE scanning with ATC sensor detection
 
 ## What This Example Tests
 
-1. **Initialization Safety**: Verifies whitelist methods return safe values before NimBLE is initialized
-2. **Whitelist Operations**: Tests add/remove/clear/count operations
-3. **Compatibility Layer**: Uses `NimBLEDevice` API that redirects to `NimBLEObserverOnly`
-4. **Real Scanning**: Performs actual BLE scans with and without whitelist filtering
+1. **BLE Stack Timing**: Waits 2 seconds after init for BLE stack to stabilize
+2. **Two-Phase Testing**: Runs tests in loop() instead of setup() for proper timing
+3. **Whitelist Operations**: Tests add/remove/clear/count operations
+4. **Scan Comparison**: Compares open scan vs whitelist-filtered results
+5. **Real Scanning**: Performs actual BLE scans with efficiency metrics
 
 ## Expected Output
 
@@ -36,18 +38,30 @@ Invalid index address: 00:00:00:00:00:00 (should be 00:00:00:00:00:00)
 After remove, count: 0
 Got scan object
 
---- Testing actual BLE scan ---
-Starting 5 second scan for all devices...
-Scan complete. Found X devices:
-  [0] xx:xx:xx:xx:xx:xx, RSSI: -XX, Name: Device Name
-  ...
+Waiting 2 seconds for BLE stack to stabilize...
 
---- Testing scan with whitelist ---
-Added 3 addresses to whitelist
-Starting 5 second scan with whitelist filter...
-Filtered scan complete. Found Y devices:
-  [0] a4:c1:38:1d:87:bb, RSSI: -XX [ATC Sensor]
-  ...
+*** Main scanning tests will start in loop() ***
+
+=== PHASE 1: Open Scan (10 seconds) ===
+Should see ALL nearby BLE devices...
+
+[Open 1] Device: 4c:11:ae:6c:65:0a, RSSI: -89
+[Open 2] Device: a4:c1:38:1d:87:bb, RSSI: -68 <-- TEST DEVICE! [ATC Data]
+...
+Open scan complete. Total devices: 47
+
+=== PHASE 2: Whitelist Scan (10 seconds) ===
+Should ONLY see whitelisted devices...
+
+[WL 1] Device: a4:c1:38:1d:87:bb, RSSI: -67 <-- TEST DEVICE! [ATC Data]
+[WL 2] Device: a4:c1:38:07:51:82, RSSI: -72 <-- TEST DEVICE!
+
+Whitelist scan complete. Total devices: 2
+
+=== SUMMARY ===
+Open scan found: 47 devices
+Whitelist scan found: 2 devices
+Whitelist efficiency: 95.7% reduction
 ```
 
 ## Configuration
