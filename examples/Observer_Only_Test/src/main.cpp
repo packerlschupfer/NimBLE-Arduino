@@ -1,71 +1,82 @@
 #include <Arduino.h>
-#include "nimconfig_observer_only.h"
+#include "NimBLEObserverOnly.h"
 
-// Use compatibility layer that redirects NimBLEDevice to NimBLEObserverOnly
-#include "NimBLEDeviceCompat.h"
-#include "NimBLEScan.h"
-#include "NimBLEAdvertisedDevice.h"
+// Enable more debugging
+#define NIMBLE_LOGE(tag, fmt, ...) Serial.printf("[E][%s] " fmt "\n", tag, ##__VA_ARGS__)
+#define NIMBLE_LOGW(tag, fmt, ...) Serial.printf("[W][%s] " fmt "\n", tag, ##__VA_ARGS__)
+#define NIMBLE_LOGI(tag, fmt, ...) Serial.printf("[I][%s] " fmt "\n", tag, ##__VA_ARGS__)
+#define NIMBLE_LOGD(tag, fmt, ...) Serial.printf("[D][%s] " fmt "\n", tag, ##__VA_ARGS__)
 
-// Test that mimics ATC_MiThermometer usage
-void testCompatibility() {
-    // CRITICAL TEST: Check whitelist before init (should return 0, not garbage)
-    Serial.println("\n--- Testing whitelist BEFORE init ---");
-    size_t countBeforeInit = NimBLEDevice::getWhiteListCount();
-    Serial.printf("Whitelist count before init: %zu (should be 0)\n", countBeforeInit);
-    
-    // Try to get address before init (should return invalid address)
-    NimBLEAddress addrBeforeInit = NimBLEDevice::getWhiteListAddress(0);
-    Serial.printf("Address at index 0 before init: %s (should be 00:00:00:00:00:00)\n", 
-                  addrBeforeInit.toString().c_str());
-    
-    // Now initialize
-    Serial.println("\n--- Initializing NimBLE ---");
-    NimBLEDevice::init("Test");
-    
-    // Test again after init
-    Serial.println("\n--- Testing whitelist AFTER init ---");
-    size_t countAfterInit = NimBLEDevice::getWhiteListCount();
-    Serial.printf("Whitelist count after init: %zu (should still be 0)\n", countAfterInit);
-    
-    // Add to whitelist (like line 221 in ATC_MiThermometer)
-    NimBLEAddress addr("A4:C1:38:1D:87:BB", BLE_ADDR_PUBLIC);
-    if (NimBLEDevice::whiteListAdd(addr)) {
-        Serial.println("Added to whitelist");
+class MyScanCallbacks : public NimBLEScanCallbacks {
+    void onResult(NimBLEAdvertisedDevice* advertisedDevice) {
+        Serial.printf("Device: %s, RSSI: %d\n", 
+            advertisedDevice->getAddress().toString().c_str(),
+            advertisedDevice->getRSSI());
     }
     
-    // Get whitelist count (like line 363)
-    size_t count = NimBLEDevice::getWhiteListCount();
-    Serial.printf("Whitelist count: %zu\n", count);
-    
-    // Get whitelist address (like line 368)
-    NimBLEAddress retrieved = NimBLEDevice::getWhiteListAddress(0);
-    Serial.printf("First address: %s\n", retrieved.toString().c_str());
-    
-    // Test invalid index
-    NimBLEAddress invalid = NimBLEDevice::getWhiteListAddress(99);
-    Serial.printf("Invalid index address: %s (should be 00:00:00:00:00:00)\n", 
-                  invalid.toString().c_str());
-    
-    // Remove from whitelist (like line 369)
-    NimBLEDevice::whiteListRemove(addr);
-    Serial.printf("After remove, count: %zu\n", NimBLEDevice::getWhiteListCount());
-    
-    // Get scan object
-    NimBLEScan* pScan = NimBLEDevice::getScan();
-    if (pScan) {
-        Serial.println("Got scan object");
+    void onScanEnd(const NimBLEScanResults& results, int reason) {
+        Serial.printf("Scan ended: reason=%d, count=%d\n", reason, results.getCount());
     }
-}
+};
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
+    Serial.println("\n\n=== Starting Simple Observer-Only BLE Test ===");
     
-    Serial.println("\n=== NimBLEDevice Compatibility Test ===");
-    testCompatibility();
-    Serial.println("=== Test Complete ===");
+    // Show ESP32 info
+    Serial.printf("ESP32 Model: %s\n", ESP.getChipModel());
+    Serial.printf("ESP32 Revision: %d\n", ESP.getChipRevision());
+    Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
+    
+    // Initialize observer-only mode
+    Serial.println("Initializing NimBLE Observer...");
+    if (!NimBLEObserverOnly::init("Observer-Test")) {
+        Serial.println("ERROR: Failed to initialize NimBLE!");
+        return;
+    }
+    Serial.println("NimBLE Observer initialized successfully");
+    
+    // Get scanner instance
+    NimBLEScan* pScan = NimBLEObserverOnly::getScan();
+    if (!pScan) {
+        Serial.println("ERROR: Failed to get scan object!");
+        return;
+    }
+    Serial.println("Got scan object");
+    
+    // Set callbacks
+    pScan->setScanCallbacks(new MyScanCallbacks());
+    
+    // Configure passive scanning
+    pScan->setActiveScan(false);
+    pScan->setInterval(100);
+    pScan->setWindow(99);
+    pScan->setDuplicateFilter(0);  // Report all devices
+    
+    // Start scanning for 10 seconds
+    Serial.println("Starting 10 second scan...");
+    if (!pScan->start(10, false)) {
+        Serial.println("ERROR: Failed to start scan!");
+        return;
+    }
+    
+    // Wait for scan to complete
+    delay(11000);
+    
+    // Get results
+    NimBLEScanResults results = pScan->getResults();
+    Serial.printf("\nFinal results: %d devices found\n", results.getCount());
+    
+    // Start continuous scanning
+    Serial.println("\nStarting continuous scan...");
+    pScan->start(0, false);
 }
 
 void loop() {
-    delay(1000);
+    delay(5000);
+    
+    // Print status every 5 seconds
+    Serial.printf("Status: Free heap=%d, Uptime=%lu sec\n", 
+                  ESP.getFreeHeap(), millis() / 1000);
 }

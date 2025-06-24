@@ -56,7 +56,12 @@ NimBLEScan::~NimBLEScan() {
  */
 int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
 #ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    NIMBLE_LOGD(LOG_TAG, "handleGapEvent called: type=%d, arg=%p", event->type, arg);
     NimBLEScan* pScan = static_cast<NimBLEScan*>(arg);
+    if (pScan == nullptr) {
+        NIMBLE_LOGE(LOG_TAG, "CRITICAL: pScan is null in handleGapEvent!");
+        return 0;
+    }
 #else
     (void)arg;
     NimBLEScan* pScan = NimBLEDevice::getScan();
@@ -369,6 +374,9 @@ void NimBLEScan::setPeriod(uint32_t periodMs) {
  */
 bool NimBLEScan::start(uint32_t duration, bool isContinue, bool restart) {
     NIMBLE_LOGD(LOG_TAG, ">> start: duration=%" PRIu32, duration);
+#ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    NIMBLE_LOGI(LOG_TAG, "Starting scan in OBSERVER_ONLY mode");
+#endif
     if (isScanning()) {
         if (restart) {
             NIMBLE_LOGI(LOG_TAG, "Scan already in progress, restarting it");
@@ -413,6 +421,9 @@ bool NimBLEScan::start(uint32_t duration, bool isContinue, bool restart) {
 #endif
 # else
 #ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
+    NIMBLE_LOGI(LOG_TAG, "Calling ble_gap_disc with: addr_type=%d, duration=%d, passive=%d, filter=%d",
+                BLE_OWN_ADDR_PUBLIC, duration ? duration : BLE_HS_FOREVER, 
+                m_scanParams.passive, m_scanParams.filter_policy);
     int rc = ble_gap_disc(BLE_OWN_ADDR_PUBLIC,
 #else
     int rc = ble_gap_disc(NimBLEDevice::m_ownAddrType,

@@ -124,11 +124,13 @@ bool NimBLEObserverOnly::init(const std::string& deviceName) {
     
 #if defined(CONFIG_IDF_TARGET_ESP32)
     // For ESP32, we need to set max connections
-    // Even for observer-only mode, the controller requires at least 1 connection
+    // ESP32 controller requires at least 1 connection slot even for observer-only
     bt_cfg.ble_max_conn = CONFIG_BT_NIMBLE_MAX_CONNECTIONS > 0 ? CONFIG_BT_NIMBLE_MAX_CONNECTIONS : 1;
 #elif defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32S3)
+    // ESP32-C3/S3 also need at least 1 active connection slot
     bt_cfg.ble_max_act = CONFIG_BT_NIMBLE_MAX_CONNECTIONS > 0 ? CONFIG_BT_NIMBLE_MAX_CONNECTIONS : 1;
 #else
+    // Other chips may also need at least 1 connection slot
     bt_cfg.nimble_max_connections = CONFIG_BT_NIMBLE_MAX_CONNECTIONS > 0 ? CONFIG_BT_NIMBLE_MAX_CONNECTIONS : 1;
 #endif
 

@@ -148,7 +148,8 @@ if observer_only:
     # Build the complete source filter
     src_filter = observer_cpp_files + exclude_cpp_files + nimble_c_files
     
-    # Apply the filter
+    # Apply the filter to the library
+    # This will only affect the NimBLE-Arduino library compilation
     env.Replace(SRC_FILTER=src_filter)
     
     # Add observer-only specific flags
