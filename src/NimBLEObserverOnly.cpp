@@ -15,6 +15,7 @@
 #include "nimble/nimble/host/include/host/ble_hs_pvcy.h"
 #include "nimble/nimble/host/util/include/host/util/util.h"
 #include "nimble/nimble/host/services/gap/include/services/gap/ble_svc_gap.h"
+#include "nimble/nimble/host/include/host/ble_gap.h"
 
 #include <esp_bt.h>
 #include <esp_bt_main.h>
@@ -41,6 +42,7 @@ static const char* LOG_TAG = "NimBLEObserver";
 // Static member definitions
 bool NimBLEObserverOnly::m_initialized = false;
 NimBLEScan* NimBLEObserverOnly::m_pScan = nullptr;
+std::vector<NimBLEAddress> NimBLEObserverOnly::m_whiteList;
 
 /**
  * @brief Initialize NimBLE for observer-only mode
@@ -387,6 +389,104 @@ void NimBLEObserverOnly::onSync() {
 void NimBLEObserverOnly::onReset(int reason) {
     NIMBLE_LOGE(LOG_TAG, "Host reset: %d", reason);
     m_initialized = false;
+}
+
+/**
+ * @brief Add a device to the whitelist
+ * @param [in] address The address to add
+ * @return true if successful
+ */
+bool NimBLEObserverOnly::whiteListAdd(const NimBLEAddress& address) {
+    if (!m_initialized) {
+        NIMBLE_LOGE(LOG_TAG, "Not initialized");
+        return false;
+    }
+    
+    if (!onWhiteList(address)) {
+        m_whiteList.push_back(address);
+        int rc = ble_gap_wl_set(reinterpret_cast<ble_addr_t*>(&m_whiteList[0]), m_whiteList.size());
+        if (rc != 0) {
+            NIMBLE_LOGE(LOG_TAG, "Failed adding to whitelist rc=%d", rc);
+            m_whiteList.pop_back();
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+/**
+ * @brief Remove a device from the whitelist
+ * @param [in] address The address to remove
+ * @return true if successful
+ */
+bool NimBLEObserverOnly::whiteListRemove(const NimBLEAddress& address) {
+    if (!m_initialized) {
+        NIMBLE_LOGE(LOG_TAG, "Not initialized");
+        return false;
+    }
+    
+    for (auto it = m_whiteList.begin(); it < m_whiteList.end(); ++it) {
+        if (*it == address) {
+            m_whiteList.erase(it);
+            int rc = ble_gap_wl_set(reinterpret_cast<ble_addr_t*>(&m_whiteList[0]), m_whiteList.size());
+            if (rc != 0) {
+                m_whiteList.push_back(address);
+                NIMBLE_LOGE(LOG_TAG, "Failed removing from whitelist rc=%d", rc);
+                return false;
+            }
+            
+            // Shrink vector capacity
+            std::vector<NimBLEAddress>(m_whiteList).swap(m_whiteList);
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * @brief Clear the whitelist
+ * @return true if successful
+ */
+bool NimBLEObserverOnly::whiteListClear() {
+    if (!m_initialized) {
+        NIMBLE_LOGE(LOG_TAG, "Not initialized");
+        return false;
+    }
+    
+    m_whiteList.clear();
+    int rc = ble_gap_wl_set(nullptr, 0);
+    if (rc != 0) {
+        NIMBLE_LOGE(LOG_TAG, "Failed clearing whitelist rc=%d", rc);
+        return false;
+    }
+    
+    // Free vector memory
+    std::vector<NimBLEAddress>().swap(m_whiteList);
+    return true;
+}
+
+/**
+ * @brief Check if a device is on the whitelist
+ * @param [in] address The address to check
+ * @return true if the address is on the whitelist
+ */
+bool NimBLEObserverOnly::onWhiteList(const NimBLEAddress& address) {
+    for (const auto& addr : m_whiteList) {
+        if (addr == address) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Get the whitelist size
+ * @return The number of addresses in the whitelist
+ */
+size_t NimBLEObserverOnly::whiteListSize() {
+    return m_whiteList.size();
 }
 
 #endif // CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY

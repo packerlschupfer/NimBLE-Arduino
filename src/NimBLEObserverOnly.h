@@ -16,6 +16,7 @@
 #include "NimBLEUtils.h"
 
 #include <functional>
+#include <vector>
 
 class NimBLEObserverOnly {
 public:
@@ -61,10 +62,44 @@ public:
      * @param [in] mode The filter mode
      */
     static void setScanFilterMode(uint8_t mode);
+    
+    /**
+     * @brief Add a device to the whitelist
+     * @param [in] address The address to add
+     * @return true if successful
+     */
+    static bool whiteListAdd(const NimBLEAddress& address);
+    
+    /**
+     * @brief Remove a device from the whitelist
+     * @param [in] address The address to remove
+     * @return true if successful
+     */
+    static bool whiteListRemove(const NimBLEAddress& address);
+    
+    /**
+     * @brief Clear the whitelist
+     * @return true if successful
+     */
+    static bool whiteListClear();
+    
+    /**
+     * @brief Check if a device is on the whitelist
+     * @param [in] address The address to check
+     * @return true if the address is on the whitelist
+     */
+    static bool onWhiteList(const NimBLEAddress& address);
+    
+    /**
+     * @brief Get the whitelist size
+     * @return The number of addresses in the whitelist
+     */
+    static size_t whiteListSize();
 
 private:
     static bool m_initialized;
     static NimBLEScan* m_pScan;
+    static std::vector<NimBLEAddress> m_whiteList;
     
     // Minimal host task for observer mode
     static void host_task(void* param);

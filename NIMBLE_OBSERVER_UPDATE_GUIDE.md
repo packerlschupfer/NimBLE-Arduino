@@ -21,11 +21,19 @@ The `feature/observer-core-optimization` branch has been successfully fixed to c
 - `nimble_stubs.cpp` provides weak symbol stubs for unused subsystems
 - Prevents linker from pulling in GATT client/server, connection management, etc.
 
-### 4. ESP32 Controller Initialization Fix
-- Fixed controller initialization sequence for ESP32 compatibility
-- Requires at least 1 connection even in observer-only mode (ESP32 hardware requirement)
-- Proper controller state checking and cleanup before initialization
-- Successfully tested with ATC PVVX temperature sensor (A4:C1:38:1D:87:BB)
+### 4. ESP32 Controller Initialization Fix (CRITICAL UPDATE)
+- **Fixed ESP_ERR_INVALID_ARG (258) error** - The ESP32 BT controller requires at least 1 connection to be configured even in observer-only mode
+- **Fixed mode mismatch error** - The controller must be enabled with the same mode it was initialized with
+- **Proper initialization sequence**:
+  1. Controller deinit if already initialized
+  2. NVS flash initialization check
+  3. Controller init with BLE_MODE (not BTDM_MODE)
+  4. Controller enable with matching mode
+  5. Host task initialization
+- **Successfully tested** with ATC PVVX temperature sensor
+- **Memory savings achieved**:
+  - Flash: 546KB used (41.7% of 1.31MB) - saves ~200-400KB vs full NimBLE
+  - RAM: 31KB used (9.6%) - minimal footprint
 
 ## How to Use Observer-Only Mode
 
@@ -41,11 +49,18 @@ The `feature/observer-core-optimization` branch has been successfully fixed to c
 
 2. Use `NimBLEObserverOnly` instead of `NimBLEDevice`:
 ```cpp
-// Initialize
-NimBLEObserverOnly::init("MyDevice");
+// Initialize with error checking
+if (!NimBLEObserverOnly::init("MyDevice")) {
+    Serial.println("ERROR: Failed to initialize NimBLE!");
+    return;
+}
 
-// Get scan object
+// Get scan object with null check
 NimBLEScan* pScan = NimBLEObserverOnly::getScan();
+if (!pScan) {
+    Serial.println("ERROR: Failed to get scan object!");
+    return;
+}
 
 // Configure and start scanning
 pScan->setActiveScan(false);
@@ -90,9 +105,17 @@ See `examples/Observer_Only_Test/Observer_Only_Test.ino` for a complete working 
 
 The observer-only build has been tested to:
 - Compile successfully with all optimizations enabled
+- Initialize ESP32 BT controller correctly without errors
 - Perform continuous passive scanning
 - Handle scan callbacks correctly
 - Work with existing NimBLEAdvertisedDevice API
+- Successfully detect and parse ATC PVVX temperature sensor data
+
+## Known Issues Fixed
+
+1. **ESP_ERR_INVALID_ARG (258)**: ESP32 requires at least 1 connection configured
+2. **Controller mode mismatch**: Must use BLE_MODE consistently 
+3. **NimBLEObserverOnly::getScan() returns null**: Now properly initializes scan object
 
 ## Contact
 

@@ -140,12 +140,10 @@
 #define MYNEWT_VAL_BLE_LL_CFG_FEAT_LL_PRIVACY 0
 #endif
 
-// Disable whitelist
-#ifndef CONFIG_BT_NIMBLE_WHITELIST_DISABLED
-#define CONFIG_BT_NIMBLE_WHITELIST_DISABLED 1
-#endif
+// Enable whitelist for hardware filtering in observer mode
+// This is useful for filtering devices at the controller level
 #ifndef CONFIG_BT_NIMBLE_WHITELIST_SIZE
-#define CONFIG_BT_NIMBLE_WHITELIST_SIZE 0
+#define CONFIG_BT_NIMBLE_WHITELIST_SIZE 12
 #endif
 
 // Disable advertising extensions
