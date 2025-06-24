@@ -6,18 +6,19 @@
 
 #include <Arduino.h>
 #include <NimBLEObserverOnly.h>
+#include <cstring>
 
 const char* TARGET_MAC = "a4:c1:38:1d:87:bb";  // Office sensor
 
 class DebugCallbacks : public NimBLEScanCallbacks {
     void onResult(NimBLEAdvertisedDevice* advertisedDevice) {
-        String addr = advertisedDevice->getAddress().toString();
+        std::string addr = advertisedDevice->getAddress().toString();
         
         // Show all devices briefly
         Serial.printf("Found: %s RSSI=%d", addr.c_str(), advertisedDevice->getRSSI());
         
         // Check if it's our target
-        if (addr.equalsIgnoreCase(TARGET_MAC)) {
+        if (strcasecmp(addr.c_str(), TARGET_MAC) == 0) {
             Serial.print(" <-- TARGET SENSOR!");
             
             // Check for service data (ATC sensors advertise with UUID 0x181a)
