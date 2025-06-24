@@ -21,6 +21,12 @@ The `feature/observer-core-optimization` branch has been successfully fixed to c
 - `nimble_stubs.cpp` provides weak symbol stubs for unused subsystems
 - Prevents linker from pulling in GATT client/server, connection management, etc.
 
+### 4. ESP32 Controller Initialization Fix
+- Fixed controller initialization sequence for ESP32 compatibility
+- Requires at least 1 connection even in observer-only mode (ESP32 hardware requirement)
+- Proper controller state checking and cleanup before initialization
+- Successfully tested with ATC PVVX temperature sensor (A4:C1:38:1D:87:BB)
+
 ## How to Use Observer-Only Mode
 
 ### For Boiler Controller Project
