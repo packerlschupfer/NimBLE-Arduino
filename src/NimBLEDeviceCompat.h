@@ -30,6 +30,10 @@ public:
         return NimBLEObserverOnly::whiteListRemove(address);
     }
     
+    static bool whiteListClear() {
+        return NimBLEObserverOnly::whiteListClear();
+    }
+    
     static size_t getWhiteListCount() {
         return NimBLEObserverOnly::whiteListSize();
     }
