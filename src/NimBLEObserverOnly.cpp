@@ -21,6 +21,20 @@
 #include "nimble/esp_port/esp-hci/include/esp_nimble_hci.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <nvs_flash.h>
+
+#if defined(CONFIG_ENABLE_ARDUINO_DEPENDS) && defined(CONFIG_BT_ENABLED)
+extern "C" bool btStarted();
+#endif
+
+extern "C" void ble_store_config_init(void);
+
+// Provide stub implementations for store config symbols that are undefined in observer-only builds
+extern "C" {
+    // These are referenced by ble_store_config.c but not needed for observer-only mode
+    void* ble_store_config_csfcs = nullptr;
+    int ble_store_config_persist_csfcs(void) { return 0; }
+}
 
 static const char* LOG_TAG = "NimBLEObserver";
 
@@ -32,6 +46,8 @@ NimBLEScan* NimBLEObserverOnly::m_pScan = nullptr;
  * @brief Initialize NimBLE for observer-only mode
  */
 bool NimBLEObserverOnly::init(const std::string& deviceName) {
+    NIMBLE_LOGI(LOG_TAG, "init() called with device name: %s", deviceName.c_str());
+    
     if (m_initialized) {
         NIMBLE_LOGW(LOG_TAG, "Already initialized");
         // Ensure scan object exists even if already initialized
@@ -41,42 +57,155 @@ bool NimBLEObserverOnly::init(const std::string& deviceName) {
         return true;
     }
 
-    // Initialize ESP controller with minimal config
-    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    NIMBLE_LOGI(LOG_TAG, "Starting NimBLE initialization...");
     
-    // Optimize controller for scanning only
-    bt_cfg.mode = ESP_BT_MODE_BLE;
-    bt_cfg.normal_adv_size = 0;  // No advertising
-    bt_cfg.scan_duplicate_type = 1;  // Hardware duplicate filter
+#if defined(CONFIG_ENABLE_ARDUINO_DEPENDS) && defined(CONFIG_BT_ENABLED)
+    // Make sure Arduino doesn't release BLE memory
+    // Note: btStarted() only checks if controller is enabled, doesn't actually start it
+    bool bt_started = btStarted();
+    NIMBLE_LOGI(LOG_TAG, "btStarted() returned: %d", bt_started);
     
-    esp_err_t ret = esp_bt_controller_init(&bt_cfg);
+    // Note: We only need to ensure BT memory isn't released by Arduino init
+#endif
+    
+    // Initialize NVS flash
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ret = nvs_flash_erase();
+        if (ret == ESP_OK) {
+            ret = nvs_flash_init();
+        }
+    }
     if (ret != ESP_OK) {
-        NIMBLE_LOGE(LOG_TAG, "Controller init failed: %d", ret);
+        NIMBLE_LOGE(LOG_TAG, "nvs_flash_init() failed: %d", ret);
         return false;
     }
+    
+    // Check controller status first
+    esp_bt_controller_status_t status = esp_bt_controller_get_status();
+    NIMBLE_LOGI(LOG_TAG, "Initial controller status: %d", status);
+    
+    // If controller is already initialized or enabled, we need to handle it
+    if (status == ESP_BT_CONTROLLER_STATUS_ENABLED) {
+        NIMBLE_LOGI(LOG_TAG, "Controller already enabled, disabling first...");
+        ret = esp_bt_controller_disable();
+        if (ret != ESP_OK) {
+            NIMBLE_LOGE(LOG_TAG, "Failed to disable controller: %d", ret);
+            return false;
+        }
+        vTaskDelay(pdMS_TO_TICKS(100)); // Give time for controller to fully disable
+        status = esp_bt_controller_get_status();
+        NIMBLE_LOGI(LOG_TAG, "Controller status after disable: %d", status);
+    }
+    
+    if (status == ESP_BT_CONTROLLER_STATUS_INITED) {
+        NIMBLE_LOGI(LOG_TAG, "Controller already initialized, deinitializing first...");
+        ret = esp_bt_controller_deinit();
+        if (ret != ESP_OK) {
+            NIMBLE_LOGE(LOG_TAG, "Failed to deinit controller: %d", ret);
+            return false;
+        }
+        vTaskDelay(pdMS_TO_TICKS(100)); // Give time for controller to fully deinit
+        status = esp_bt_controller_get_status();
+        NIMBLE_LOGI(LOG_TAG, "Controller status after deinit: %d", status);
+    }
+    
+    // Release Classic BT memory
+    ret = esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
+    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
+        NIMBLE_LOGW(LOG_TAG, "Failed to release BT memory: %d", ret);
+    }
+    
+    // Initialize controller using default configuration
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0) || !defined(CONFIG_NIMBLE_CPP_IDF)
+    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    
+#if defined(CONFIG_IDF_TARGET_ESP32)
+    // For ESP32, we need to set max connections
+    // Even for observer-only mode, the controller requires at least 1 connection
+    bt_cfg.ble_max_conn = CONFIG_BT_NIMBLE_MAX_CONNECTIONS > 0 ? CONFIG_BT_NIMBLE_MAX_CONNECTIONS : 1;
+#elif defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32S3)
+    bt_cfg.ble_max_act = CONFIG_BT_NIMBLE_MAX_CONNECTIONS > 0 ? CONFIG_BT_NIMBLE_MAX_CONNECTIONS : 1;
+#else
+    bt_cfg.nimble_max_connections = CONFIG_BT_NIMBLE_MAX_CONNECTIONS > 0 ? CONFIG_BT_NIMBLE_MAX_CONNECTIONS : 1;
+#endif
 
-    ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
+#if CONFIG_BTDM_BLE_SCAN_DUPL
+    // Configure scan duplicate filtering for ESP32
+    bt_cfg.normal_adv_size = CONFIG_BTDM_SCAN_DUPL_CACHE_SIZE;
+    bt_cfg.scan_duplicate_type = CONFIG_BTDM_SCAN_DUPL_TYPE;
+#elif CONFIG_BT_LE_SCAN_DUPL
+    // Configure scan duplicate filtering for newer chips
+    bt_cfg.ble_ll_rsp_dup_list_count = CONFIG_BT_LE_LL_DUP_SCAN_LIST_COUNT;
+    bt_cfg.ble_ll_adv_dup_list_count = CONFIG_BT_LE_LL_DUP_SCAN_LIST_COUNT;
+#endif
+    
+    NIMBLE_LOGI(LOG_TAG, "Calling esp_bt_controller_init with BLE mode config...");
+    NIMBLE_LOGI(LOG_TAG, "BT controller config: mode=%d (BLE=1, CLASSIC=2, DUAL=3), ble_max_conn=%d", 
+                bt_cfg.mode, bt_cfg.ble_max_conn);
+    NIMBLE_LOGI(LOG_TAG, "Controller stack size=%d, prio=%d", 
+                bt_cfg.controller_task_stack_size, bt_cfg.controller_task_prio);
+    
+    // Check if controller was already initialized by Arduino
+    status = esp_bt_controller_get_status();
+    if (status == ESP_BT_CONTROLLER_STATUS_INITED) {
+        NIMBLE_LOGW(LOG_TAG, "Controller already initialized, skipping init");
+    } else {
+        ret = esp_bt_controller_init(&bt_cfg);
+        if (ret != ESP_OK) {
+            NIMBLE_LOGE(LOG_TAG, "Controller init failed: %d (0x%x)", ret, ret);
+            NIMBLE_LOGE(LOG_TAG, "ESP_ERR_INVALID_ARG=%d, ESP_ERR_INVALID_STATE=%d, ESP_ERR_NO_MEM=%d", 
+                        ESP_ERR_INVALID_ARG, ESP_ERR_INVALID_STATE, ESP_ERR_NO_MEM);
+            return false;
+        }
+    }
+    
+    status = esp_bt_controller_get_status();
+    NIMBLE_LOGI(LOG_TAG, "Controller status after init: %d", status);
+    
+    // Enable with the same mode that was configured during init
+    esp_bt_mode_t enable_mode = static_cast<esp_bt_mode_t>(bt_cfg.mode);
+    NIMBLE_LOGI(LOG_TAG, "Enabling controller with mode: %d", enable_mode);
+    ret = esp_bt_controller_enable(enable_mode);
     if (ret != ESP_OK) {
         NIMBLE_LOGE(LOG_TAG, "Controller enable failed: %d", ret);
         esp_bt_controller_deinit();
         return false;
     }
+    
+    // Initialize NimBLE HCI for legacy VHCI
+#if CONFIG_BT_NIMBLE_LEGACY_VHCI_ENABLE
+    ret = esp_nimble_hci_init();
+    if (ret != ESP_OK) {
+        NIMBLE_LOGE(LOG_TAG, "esp_nimble_hci_init failed: %d", ret);
+        esp_bt_controller_disable();
+        esp_bt_controller_deinit();
+        return false;
+    }
+#endif
+#endif // ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
 
-    // Initialize NimBLE host
-    esp_nimble_hci_init();
+    // Initialize NimBLE port - CRITICAL: This must be called before any host configuration
+    nimble_port_init();
     
     // Configure minimal host settings
     ble_hs_cfg.reset_cb = NimBLEObserverOnly::onReset;
     ble_hs_cfg.sync_cb = NimBLEObserverOnly::onSync;
     
-    // Disable store callbacks - not needed for observer
-    ble_hs_cfg.store_status_cb = nullptr;
-    ble_hs_cfg.store_read_cb = nullptr;
-    ble_hs_cfg.store_write_cb = nullptr;
-    ble_hs_cfg.store_delete_cb = nullptr;
+    // Disable security features not needed for observer
+    ble_hs_cfg.sm_bonding = 0;
+    ble_hs_cfg.sm_mitm = 0;
+    ble_hs_cfg.sm_sc = 0;
+    ble_hs_cfg.sm_our_key_dist = 0;
+    ble_hs_cfg.sm_their_key_dist = 0;
     
-    // Minimal GAP service for observer mode
-    ble_svc_gap_init();
+    // Set device name if provided
+    if (!deviceName.empty()) {
+        ble_svc_gap_device_name_set(deviceName.c_str());
+    }
+    
+    // Initialize store config (even if we don't use it, it's required)
+    ble_store_config_init();
     
     // Create host task with reduced stack size
     nimble_port_freertos_init(NimBLEObserverOnly::host_task);
@@ -220,18 +349,36 @@ void NimBLEObserverOnly::host_task(void* param) {
  * @brief Sync callback
  */
 void NimBLEObserverOnly::onSync() {
-    // Set public address
+    NIMBLE_LOGI(LOG_TAG, "NimBLE host synced");
+    
+    // Ensure we have public and random addresses
     int rc = ble_hs_util_ensure_addr(0);
+    if (rc == 0) {
+        rc = ble_hs_util_ensure_addr(1);
+    }
+    
     if (rc != 0) {
-        NIMBLE_LOGE(LOG_TAG, "Error setting address: %d", rc);
+        NIMBLE_LOGE(LOG_TAG, "Error ensuring address: %d", rc);
         return;
     }
+    
+    // Initialize GAP service after sync
+    ble_svc_gap_init();
+    
+    // Use public address if available
+    rc = ble_hs_id_copy_addr(BLE_OWN_ADDR_PUBLIC, NULL, NULL);
+    if (rc != 0) {
+        NIMBLE_LOGW(LOG_TAG, "No public address available, will use random");
+    }
+    
+    // Small delay for housekeeping
+    ble_npl_time_delay(1);
+    
+    m_initialized = true;
     
     // Get and log our address
     NimBLEAddress addr = getAddress();
     NIMBLE_LOGI(LOG_TAG, "Device address: %s", addr.toString().c_str());
-    
-    m_initialized = true;
 }
 
 /**

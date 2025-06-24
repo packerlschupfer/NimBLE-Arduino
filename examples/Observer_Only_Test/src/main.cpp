@@ -31,15 +31,19 @@ class MyScanCallbacks : public NimBLEScanCallbacks {
                 }
                 Serial.println();
                 
-                // PVVX format parsing (if service data matches expected format)
-                if (svcData.length() >= 14) {
-                    float temp = ((svcData[6] << 8) | svcData[7]) / 10.0;
-                    uint8_t humidity = svcData[8];
-                    uint16_t battery_mv = (svcData[9] << 8) | svcData[10];
-                    uint8_t battery_pct = svcData[11];
-                    uint8_t counter = svcData[13];
+                // PVVX format parsing
+                if (svcData.length() >= 13) {
+                    // Temperature is signed int16 in 0.01°C units, little-endian
+                    int16_t temp_raw = (uint8_t)svcData[6] | ((uint8_t)svcData[7] << 8);
+                    float temp = temp_raw / 100.0;
                     
-                    Serial.printf("Temperature: %.1f°C\n", temp);
+                    uint8_t humidity = svcData[8];
+                    // Battery mV is little-endian
+                    uint16_t battery_mv = (uint8_t)svcData[9] | ((uint8_t)svcData[10] << 8);
+                    uint8_t battery_pct = svcData[11];
+                    uint8_t counter = svcData[12];
+                    
+                    Serial.printf("Temperature: %.2f°C\n", temp);
                     Serial.printf("Humidity: %d%%\n", humidity);
                     Serial.printf("Battery: %dmV (%d%%)\n", battery_mv, battery_pct);
                     Serial.printf("Counter: %d\n", counter);
