@@ -119,8 +119,10 @@ if observer_only:
         "-<nimble/nimble/host/services/lls/>",
         "-<nimble/nimble/host/services/tps/>",
         
-        # Exclude store
+        # Exclude all store implementations
         "-<nimble/nimble/host/store/>",
+        "-<nimble/nimble/host/store/config/>",
+        "-<nimble/nimble/host/store/ram/>",
         
         # Exclude mesh
         "-<nimble/nimble/host/mesh/>",
