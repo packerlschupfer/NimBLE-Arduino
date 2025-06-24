@@ -95,6 +95,13 @@ public:
      * @return The number of addresses in the whitelist
      */
     static size_t whiteListSize();
+    
+    /**
+     * @brief Get an address from the whitelist by index
+     * @param [in] index The index of the address to get
+     * @return The address at the specified index, or an invalid address if out of bounds
+     */
+    static NimBLEAddress getWhiteListAddress(size_t index);
 
 private:
     static bool m_initialized;

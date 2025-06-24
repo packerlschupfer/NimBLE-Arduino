@@ -489,4 +489,17 @@ size_t NimBLEObserverOnly::whiteListSize() {
     return m_whiteList.size();
 }
 
+/**
+ * @brief Get an address from the whitelist by index
+ * @param [in] index The index of the address to get
+ * @return The address at the specified index, or an invalid address if out of bounds
+ */
+NimBLEAddress NimBLEObserverOnly::getWhiteListAddress(size_t index) {
+    if (index < m_whiteList.size()) {
+        return m_whiteList[index];
+    }
+    // Return an invalid address if index is out of bounds
+    return NimBLEAddress();
+}
+
 #endif // CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
