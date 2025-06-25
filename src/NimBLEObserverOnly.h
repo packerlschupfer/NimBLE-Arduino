@@ -94,7 +94,7 @@ public:
      * @brief Get the whitelist size
      * @return The number of addresses in the whitelist
      */
-    static size_t whiteListSize();
+    static size_t getWhiteListCount();
     
     /**
      * @brief Get an address from the whitelist by index

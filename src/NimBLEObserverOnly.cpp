@@ -487,7 +487,7 @@ bool NimBLEObserverOnly::onWhiteList(const NimBLEAddress& address) {
  * @brief Get the whitelist size
  * @return The number of addresses in the whitelist
  */
-size_t NimBLEObserverOnly::whiteListSize() {
+size_t NimBLEObserverOnly::getWhiteListCount() {
     if (!m_initialized) {
         return 0;
     }
