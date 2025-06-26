@@ -1,68 +1,70 @@
 {
-    "name": "NimBLE-Arduino",
-    "version": "2.2.3",
-    "description": "Bluetooth low energy (BLE) library for Arduino based on NimBLE. Supports observer-only mode for minimal flash usage.",
-    "keywords": [
-        "ble",
-        "bluetooth",
-        "nimble",
-        "esp32",
-        "nrf52",
-        "observer",
-        "scanner"
+  "name": "NimBLE-Arduino",
+  "version": "2.2.3",
+  "description": "Bluetooth low energy (BLE) library for Arduino based on NimBLE. Supports observer-only mode for minimal flash usage.",
+  "keywords": [
+    "ble",
+    "bluetooth",
+    "nimble",
+    "esp32",
+    "nrf52",
+    "observer",
+    "scanner"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/h2zero/NimBLE-Arduino.git"
+  },
+  "authors": {
+    "name": "packerlschupfer",
+    "maintainer": true
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/h2zero/NimBLE-Arduino",
+  "dependencies": {},
+  "frameworks": "arduino",
+  "platforms": [
+    "espressif32",
+    "nordicnrf52"
+  ],
+  "build": {
+    "flags": [
+      "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/host/include",
+      "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/host/services/gap/include",
+      "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/host/services/gatt/include",
+      "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/host/store/config/include",
+      "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/host/store/ram/include",
+      "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/include",
+      "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/porting/nimble/include",
+      "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/porting/npl/freertos/include",
+      "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/esp_port/port/include",
+      "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/esp_port/esp-hci/include",
+      "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/ext/tinycrypt/include"
     ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/h2zero/NimBLE-Arduino.git"
-    },
-    "authors": [{
-        "name": "h2zero",
-        "email": "ryan@nable-embedded.io",
-        "maintainer": true
-    }],
-    "license": "Apache-2.0",
-    "homepage": "https://github.com/h2zero/NimBLE-Arduino",
-    "dependencies": {},
-    "frameworks": "arduino",
-    "platforms": ["espressif32", "nordicnrf52"],
-    "build": {
-        "flags": [
-            "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/host/include",
-            "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/host/services/gap/include",
-            "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/host/services/gatt/include",
-            "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/host/store/config/include",
-            "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/host/store/ram/include",
-            "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/nimble/include",
-            "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/porting/nimble/include",
-            "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/porting/npl/freertos/include",
-            "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/esp_port/port/include",
-            "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/esp_port/esp-hci/include",
-            "-I$PROJECT_LIBDEPS_DIR/$PIOENV/$NAME/src/nimble/ext/tinycrypt/include"
-        ],
-        "srcFilter": [
-            "+<*.c>",
-            "+<*.cpp>",
-            "+<*.h>",
-            "+<nimble/>",
-            "-<nimble/nimble/host/mesh/>",
-            "-<nimble/nimble/host/services/ans/>",
-            "-<nimble/nimble/host/services/bas/>",
-            "-<nimble/nimble/host/services/dis/>",
-            "-<nimble/nimble/host/services/ias/>",
-            "-<nimble/nimble/host/services/ipss/>",
-            "-<nimble/nimble/host/services/lls/>",
-            "-<nimble/nimble/host/services/tps/>",
-            "-<nimble/nimble/host/src/test/>",
-            "-<nimble/nimble/controller/test/>",
-            "-<nimble/nimble/transport/test/>"
-        ],
-        "extraScript": "scripts/build_observer_only.py"
-    },
-    "examples": [
-        "examples/BLE_Beacon_Scanner",
-        "examples/NimBLE_Client",
-        "examples/NimBLE_Server",
-        "examples/NimBLE_Observer_Only",
-        "examples/NimBLE_Observer_Minimal"
-    ]
+    "srcFilter": [
+      "+<*.c>",
+      "+<*.cpp>",
+      "+<*.h>",
+      "+<nimble/>",
+      "-<nimble/nimble/host/mesh/>",
+      "-<nimble/nimble/host/services/ans/>",
+      "-<nimble/nimble/host/services/bas/>",
+      "-<nimble/nimble/host/services/dis/>",
+      "-<nimble/nimble/host/services/ias/>",
+      "-<nimble/nimble/host/services/ipss/>",
+      "-<nimble/nimble/host/services/lls/>",
+      "-<nimble/nimble/host/services/tps/>",
+      "-<nimble/nimble/host/src/test/>",
+      "-<nimble/nimble/controller/test/>",
+      "-<nimble/nimble/transport/test/>"
+    ],
+    "extraScript": "scripts/build_observer_only.py"
+  },
+  "examples": [
+    "examples/BLE_Beacon_Scanner",
+    "examples/NimBLE_Client",
+    "examples/NimBLE_Server",
+    "examples/NimBLE_Observer_Only",
+    "examples/NimBLE_Observer_Minimal"
+  ]
 }
