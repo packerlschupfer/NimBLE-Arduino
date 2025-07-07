@@ -29,6 +29,13 @@
 # include <string>
 # include <climits>
 
+# if defined(ARDUINO_ARCH_ESP32) || defined(ESP_PLATFORM)
+#  include <esp_timer.h>
+#  define millis() (esp_timer_get_time() / 1000)
+# else
+#  include <Arduino.h>
+# endif
+
 static const char*         LOG_TAG = "NimBLEScan";
 static NimBLEScanCallbacks defaultScanCallbacks;
 
@@ -45,11 +52,14 @@ NimBLEScan::NimBLEScan()
       // default interval + window, no whitelist scan filter,not limited scan, no scan response, filter_duplicates
       m_scanParams{0, 0, BLE_HCI_SCAN_FILT_NO_WL, 0, 1, 1},
       m_pTaskData{nullptr},
-      m_maxResults{0xFF} {
+      m_maxResults{0xFF},
+      m_scanStartTime{0},
+      m_scanStats{} {
 #ifdef CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY
     // In observer-only mode, we need a global reference
     g_observerScan = this;
 #endif
+    resetStats();
 }
 
 /**
@@ -154,6 +164,10 @@ int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
 #endif
                 pScan->m_scanResults.m_deviceVec.push_back(advertisedDevice);
                 NIMBLE_LOGI(LOG_TAG, "New advertiser: %s", advertisedAddress.toString().c_str());
+                
+                // Update statistics
+                pScan->m_scanStats.beaconsReceived++;
+                pScan->m_scanStats.lastBeaconTime = millis();
             } else {
                 // Existing device update
                 advertisedDevice->update(event, event_type);
@@ -171,9 +185,11 @@ int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
                         currentCount == advertisedDevice->m_lastBeaconCount) {
                         isNewBeacon = false;
                         NIMBLE_LOGD(LOG_TAG, "Duplicate beacon detected: count=%d", currentCount);
+                        pScan->m_scanStats.duplicatesFiltered++;
                     } else {
                         advertisedDevice->m_lastBeaconCount = currentCount;
                         NIMBLE_LOGD(LOG_TAG, "New beacon detected: count=%d", currentCount);
+                        pScan->m_scanStats.beaconsReceived++;
                     }
                 }
             }
@@ -200,6 +216,9 @@ int NimBLEScan::handleGapEvent(ble_gap_event* event, void* arg) {
                 } else {
                     NIMBLE_LOGI(LOG_TAG, "Duplicate; updated: %s", advertisedAddress.toString().c_str());
                 }
+                
+                // Update last beacon time for all beacons
+                pScan->m_scanStats.lastBeaconTime = millis();
             }
 
 #if CONFIG_NIMBLE_CPP_ATT_VALUE_TIMESTAMP_ENABLED
@@ -352,7 +371,7 @@ void NimBLEScan::setWindow(uint16_t windowMs) {
  * @brief Get the status of the scanner.
  * @return true if scanning or scan starting.
  */
-bool NimBLEScan::isScanning() {
+bool NimBLEScan::isScanning() const {
     return ble_gap_disc_active();
 }
 
@@ -445,6 +464,10 @@ bool NimBLEScan::start(uint32_t duration, bool isContinue, bool restart) {
         case 0:
         case BLE_HS_EALREADY:
             NIMBLE_LOGD(LOG_TAG, "Scan started");
+            if (rc == 0) {  // Only update start time on fresh start
+                m_scanStartTime = millis();
+                m_scanStats.scanStartTime = m_scanStartTime;
+            }
             break;
 
         case BLE_HS_EBUSY:
@@ -476,9 +499,18 @@ bool NimBLEScan::stop() {
 
     int rc = ble_gap_disc_cancel();
     if (rc != 0 && rc != BLE_HS_EALREADY) {
-        NIMBLE_LOGE(LOG_TAG, "Failed to cancel scan; rc=%d", rc);
-        return false;
+        // BLE_HS_EBUSY (524) can occur if scan is stopping or already stopped
+        if (rc == BLE_HS_EBUSY) {
+            NIMBLE_LOGW(LOG_TAG, "Scan busy or already stopping; rc=%d", rc);
+            // This is not really an error, scan will stop
+        } else {
+            NIMBLE_LOGE(LOG_TAG, "Failed to cancel scan; rc=%d", rc);
+            return false;
+        }
     }
+
+    // Update scan stop time
+    m_scanStats.scanStopTime = millis();
 
     if (m_maxResults == 0) {
         clearResults();
@@ -653,6 +685,42 @@ void NimBLEScanCallbacks::onResult(const NimBLEAdvertisedDevice* pAdvertisedDevi
 
 void NimBLEScanCallbacks::onScanEnd(const NimBLEScanResults& results, int reason) {
     NIMBLE_LOGD(CB_TAG, "Scan ended; reason %d, num results: %d", reason, results.getCount());
+}
+
+/**
+ * @brief Get when the current scan started.
+ * @return The time in milliseconds when the scan started.
+ */
+uint32_t NimBLEScan::getScanStartTime() const {
+    return m_scanStartTime;
+}
+
+/**
+ * @brief Get how long we've been scanning.
+ * @return The duration in milliseconds since scan started, or 0 if not scanning.
+ */
+uint32_t NimBLEScan::getScanDuration() const {
+    if (!isScanning()) {
+        return 0;
+    }
+    return millis() - m_scanStartTime;
+}
+
+/**
+ * @brief Get scan statistics.
+ * @return The current scan statistics.
+ */
+NimBLEScanStats NimBLEScan::getStats() const {
+    return m_scanStats;
+}
+
+/**
+ * @brief Reset scan statistics.
+ */
+void NimBLEScan::resetStats() {
+    m_scanStats = NimBLEScanStats{};
+    m_scanStats.scanStartTime = 0;
+    m_scanStats.scanStopTime = 0;
 }
 
 #endif /* CONFIG_BT_ENABLED && CONFIG_BT_NIMBLE_ROLE_OBSERVER */

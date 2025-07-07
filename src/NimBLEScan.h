@@ -60,14 +60,30 @@ class NimBLEScanResults {
 };
 
 /**
+ * @brief Scan statistics for monitoring scan performance.
+ */
+struct NimBLEScanStats {
+    uint32_t beaconsReceived;     ///< Total beacons received
+    uint32_t duplicatesFiltered;  ///< Duplicates filtered out
+    uint32_t lastBeaconTime;      ///< Time of last beacon (ms)
+    uint32_t scanStartTime;       ///< When current scan started (ms)
+    uint32_t scanStopTime;        ///< When last scan stopped (ms)
+};
+
+/**
  * @brief Perform and manage %BLE scans.
  *
  * Scanning is associated with a %BLE client that is attempting to locate BLE servers.
  */
 class NimBLEScan {
   public:
+    /** @brief Constant for infinite scanning duration */
+    static constexpr uint32_t SCAN_DURATION_FOREVER = 0;
+
     bool              start(uint32_t duration, bool isContinue = false, bool restart = true);
-    bool              isScanning();
+    bool              isScanning() const;  ///< Check if actively scanning
+    uint32_t          getScanStartTime() const;  ///< Get when current scan started (ms)
+    uint32_t          getScanDuration() const;   ///< Get how long we've been scanning (ms)
     void              setScanCallbacks(NimBLEScanCallbacks* pScanCallbacks, bool wantDuplicates = false);
     void              setActiveScan(bool active);
     void              setInterval(uint16_t intervalMs);
@@ -82,6 +98,8 @@ class NimBLEScan {
     void              setMaxResults(uint8_t maxResults);
     void              erase(const NimBLEAddress& address);
     void              erase(const NimBLEAdvertisedDevice* device);
+    NimBLEScanStats   getStats() const;      ///< Get scan statistics
+    void              resetStats();           ///< Reset scan statistics
 
 # if CONFIG_BT_NIMBLE_EXT_ADV
     enum Phy { SCAN_1M = 0x01, SCAN_CODED = 0x02, SCAN_ALL = 0x03 };
@@ -103,6 +121,8 @@ class NimBLEScan {
     NimBLEScanResults    m_scanResults;
     NimBLETaskData*      m_pTaskData;
     uint8_t              m_maxResults;
+    uint32_t             m_scanStartTime;  ///< When current scan started
+    NimBLEScanStats      m_scanStats;      ///< Scan statistics
 
 # if CONFIG_BT_NIMBLE_EXT_ADV
     uint8_t  m_phy{SCAN_ALL};
