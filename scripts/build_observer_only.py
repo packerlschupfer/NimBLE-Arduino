@@ -153,7 +153,18 @@ if observer_only:
     env.Replace(SRC_FILTER=src_filter)
     
     # Add observer-only specific flags
-    env.Append(CPPDEFINES=[
+    # First, get existing defines to avoid duplicates
+    existing_defines = []
+    for define in env.get("CPPDEFINES", []):
+        if isinstance(define, tuple):
+            existing_defines.append(define[0])
+        elif isinstance(define, str) and "=" in define:
+            existing_defines.append(define.split("=")[0])
+        else:
+            existing_defines.append(str(define))
+    
+    # Define observer mode settings, checking for existing defines
+    observer_defines = [
         ("CONFIG_BT_NIMBLE_ROLE_OBSERVER_ONLY", 1),
         ("CONFIG_BT_NIMBLE_ROLE_CENTRAL_DISABLED", 1),
         ("CONFIG_BT_NIMBLE_ROLE_PERIPHERAL_DISABLED", 1),
@@ -162,7 +173,16 @@ if observer_only:
         ("MYNEWT_VAL_BLE_MAX_CONNECTIONS", 0),
         ("CONFIG_BT_NIMBLE_SM_LEGACY", 0),
         ("CONFIG_BT_NIMBLE_SM_SC", 0),
-    ])
+    ]
+    
+    # Only add defines that don't already exist
+    defines_to_add = []
+    for define, value in observer_defines:
+        if define not in existing_defines:
+            defines_to_add.append((define, value))
+    
+    if defines_to_add:
+        env.Append(CPPDEFINES=defines_to_add)
     
     # Add aggressive optimization flags
     env.Append(CCFLAGS=[
