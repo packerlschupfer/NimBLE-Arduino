@@ -123,6 +123,8 @@ if observer_only:
         "-<nimble/nimble/host/store/>",
         "-<nimble/nimble/host/store/config/>",
         "-<nimble/nimble/host/store/ram/>",
+        "-<nimble/nimble/host/store/config/src/ble_store_nvs.c>",
+        "-<nimble/nimble/host/store/config/src/ble_store_config.c>",
         
         # Exclude mesh
         "-<nimble/nimble/host/mesh/>",
